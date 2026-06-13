@@ -18,8 +18,12 @@ env/
 *.pickle
 *.pth
 *.pt
+*.mp4
 results/
 datasets/
+checkpoints/
+wandb/
+logs/
 
 # Tests
 .pytest_cache/

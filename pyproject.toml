@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ms_model"
 version = "0.0.1"
 requires-python = ">=3.10"
-dependencies = ["numpy"]
+dependencies = ["numpy", "torch", "wandb", "pyyaml", "opencv-python"]
 
 [project.optional-dependencies]
 dev = ["pytest"]

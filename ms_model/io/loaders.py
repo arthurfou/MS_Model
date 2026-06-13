@@ -4,6 +4,7 @@ from typing import Optional, Union
 import numpy as np
 
 from .events import EventArray
+from .masks import FrameMasks
 
 # Résolution DVS346 utilisée par EVIMO (cf. DEVO/scripts/preprocess_evimo.py)
 EVIMO_H, EVIMO_W = 260, 346
@@ -48,6 +49,18 @@ def load_npy_canonical(
         frame_ts = np.loadtxt(frame_ts_path, dtype=np.float64) / 1e6
 
     return EventArray(events=events, H=H, W=W, frame_ts=frame_ts)
+
+
+def load_evimo_mask(path: Union[str, Path]) -> FrameMasks:
+    """Charge le masque de segmentation GT depuis un npz EVIMO.
+
+    "ts" vient de meta["frames"][i]["ts"] — différent de frame_ts (issu de
+    "index"), qui lui correspond aux frames de la caméra event.
+    """
+    data = np.load(path, allow_pickle=True)
+    masks = data["mask"]
+    ts = np.array([f["ts"] for f in data["meta"].item()["frames"]], dtype=np.float64)
+    return FrameMasks(masks=masks, ts=ts)
 
 
 _LOADERS = {
