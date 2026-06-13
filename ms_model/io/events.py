@@ -46,3 +46,26 @@ class EventArray:
 
     def __len__(self) -> int:
         return self.events.shape[0]
+
+    def info(self) -> dict:
+        """Statistiques descriptives d'un EventArray.
+
+        Retourne un dict avec par ex. :
+        - n_events
+        - resolution (H, W)
+        - duration_s (t.max() - t.min())
+        - event_rate (n_events / duration_s)
+        - polarity_ratio (proportion d'events positifs)
+        - n_frames (si frame_ts dispo)
+        - mean_fps (si frame_ts dispo)
+        """
+        duration = self.t.max() - self.t.min()
+        return {
+            'n_events': len(self.events),
+            'resolution': (self.H, self.W),
+            'duration': duration,
+            'event_rate': len(self.events) / duration,
+            'polarity_ratio': np.mean(self.p > 0),
+            'n_frames': len(self.frame_ts) if self.frame_ts is not None else None,
+            'mean_fps': (len(self.frame_ts) - 1) / duration if self.frame_ts is not None else None,
+        }
