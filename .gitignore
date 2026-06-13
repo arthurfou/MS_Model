@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# Environnements
+.env
+.venv/
+env/
+
+# Data / artefacts
+*.npy
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.pth
+*.pt
+results/
+datasets/
+
+# Tests
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
