@@ -45,12 +45,31 @@ def run_epoch(model, loader, loss_fn, device, optimizer=None) -> float:
     return total_loss / n_batches
 
 
+def check_run_name_collision(train_cfg: dict, wandb_cfg: dict) -> None:
+    """Si un nom de run fixe est donne et qu'un checkpoint du meme nom existe deja,
+    demande confirmation avant de continuer (sinon il serait ecrase en fin d'epoch 0)."""
+    name = wandb_cfg.get("name")
+    if not name:
+        return
+
+    checkpoint_dir = Path(train_cfg.get("checkpoint_dir", "checkpoints")) / name
+    if checkpoint_dir.exists() and any(checkpoint_dir.iterdir()):
+        answer = input(f"Un run nomme '{name}' existe deja ({checkpoint_dir}), avec des checkpoints. "
+                        f"Continuer et ecraser ? [y/N] ")
+        if answer.strip().lower() not in ("y", "yes", "o", "oui"):
+            raise SystemExit("Run annule.")
+
+
 def main(config_path: str):
     config = yaml.safe_load(Path(config_path).read_text())
+    check_run_name_collision(config["training"], config["wandb"])
 
     root = Path(config["data"].get("root", "."))
     data_cfg = config["data"]
+
+    print("== Chargement du dataset d'entrainement ==", flush=True)
     train_set = build_dataset(data_cfg["train_sequences"], data_cfg, root)
+    print("== Chargement du dataset de validation ==", flush=True)
     val_set = build_dataset(data_cfg["val_sequences"], data_cfg, root)
 
     train_cfg = config["training"]
@@ -73,7 +92,12 @@ def main(config_path: str):
     optimizer = torch.optim.Adam(model.parameters(), lr=train_cfg["lr"])
     loss_fn = build_loss(train_cfg.get("loss", "bce"))
 
-    run = wandb.init(project=config["wandb"]["project"], entity=config["wandb"].get("entity"), config=config)
+    run = wandb.init(
+        project=config["wandb"]["project"],
+        entity=config["wandb"].get("entity"),
+        name=config["wandb"].get("name") or None,
+        config=config,
+    )
 
     checkpoint_dir = Path(train_cfg.get("checkpoint_dir", "checkpoints")) / run.name
     checkpoint_dir.mkdir(parents=True, exist_ok=True)

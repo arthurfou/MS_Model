@@ -2,14 +2,8 @@ data:
   root: ../EVOwithMS/datasets/EV-IMO/eval
   train_sequences:
     - box/npz/seq_00.npz
-    - box/npz/seq_01.npz
-    - box/npz/seq_02.npz
-    - table/npz/seq_00.npz
-    - table/npz/seq_01.npz
-    - wall/npz/seq_00.npz
   val_sequences:
-    - tabletop/npz/seq_00.npz
-    - tabletop/npz/seq_01.npz
+    - box/npz/seq_01.npz
   seq_len: 16
   nb_time_bins: 5
   patch_size: 4
@@ -20,11 +14,11 @@ model:
   hidden_dim: 32
 
 training:
-  epochs: 50
-  batch_size: 4
+  epochs: 2
+  batch_size: 2
   lr: 1.0e-3
   loss: bce
-  num_workers: 2
+  num_workers: 0
   checkpoint_dir: checkpoints
 
 wandb:

@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import Union
 
@@ -38,7 +39,10 @@ class EvimoSegDataset(Dataset):
         self.sequences: list[tuple[torch.Tensor, torch.Tensor]] = []
         self.index: list[tuple[int, int]] = []
 
-        for path in npz_paths:
+        for i, path in enumerate(npz_paths):
+            t0 = time.time()
+            print(f"[EvimoSegDataset] ({i + 1}/{len(npz_paths)}) chargement {path} ...", flush=True)
+
             ea = load_events(path)
             fm = load_evimo_mask(path)
             if mask_thicken_radius > 0:
@@ -52,6 +56,8 @@ class EvimoSegDataset(Dataset):
             for start in range(0, n - seq_len + 1, seq_len):
                 self.index.append((seq_idx, start))
             self.sequences.append((voxel_seq, mask_seq))
+
+            print(f"[EvimoSegDataset]   -> {n} frames, {time.time() - t0:.1f}s", flush=True)
 
     def __len__(self) -> int:
         return len(self.index)
