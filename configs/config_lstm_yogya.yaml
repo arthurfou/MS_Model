@@ -1,0 +1,51 @@
+data:
+  # CLUSTER: adapter ce chemin selon où tu as copié les données sur le cluster SoC
+  # ex: /home/utilisateur/scratch/EV-IMO/eval  ou  /data/evimo/eval
+  root: ../EVOwithMS/datasets/EV-IMO/eval
+
+  train_sequences:
+    - box/npz/seq_00.npz
+    - box/npz/seq_01.npz
+    - box/npz/seq_02.npz
+    - box/npz/seq_03.npz
+    - box/npz/seq_04.npz
+    - fast/npz/seq_00.npz
+    - fast/npz/seq_01.npz
+    - fast/npz/seq_02.npz
+    - floor/npz/seq_00.npz
+    - floor/npz/seq_01.npz
+    - table/npz/seq_00.npz
+    - table/npz/seq_01.npz
+    - table/npz/seq_02.npz
+    - wall/npz/seq_00.npz
+    - wall/npz/seq_01.npz
+
+  val_sequences:
+    - tabletop/npz/seq_00.npz
+    - tabletop/npz/seq_01.npz
+    - tabletop/npz/seq_02.npz
+    - tabletop/npz/seq_03.npz
+    - box/npz/seq_05.npz
+    - table/npz/seq_03.npz
+
+  seq_len: 16
+  nb_time_bins: 5
+  patch_size: 4
+  mask_thicken_radius: 3
+
+model:
+  name: convlstm
+  hidden_dim: 64  # double du smoke test (32), adapte au GPU
+
+training:
+  epochs: 100
+  batch_size: 8   # adapte GPU (vs 4 en CPU local)
+  lr: 1.0e-3
+  loss: bce
+  num_workers: 4  # multi-core cluster
+  checkpoint_dir: checkpoints
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: "convlstm_yogya"  # nom fixe -> resume automatique si le job est interrompu
