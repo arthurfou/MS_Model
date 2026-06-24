@@ -275,7 +275,10 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
         val_loss = val_metrics["loss"]
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), checkpoint_dir / "best.pt")
+            torch.save({
+                "model": model.state_dict(),
+                "config": config,
+            }, checkpoint_dir / "best.pt")
 
         torch.save({
             "model": model.state_dict(),
@@ -283,6 +286,7 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
             "epoch": epoch,
             "best_val_loss": best_val_loss,
             "wandb_run_id": run.id,
+            "config": config,
         }, checkpoint_dir / "last.pt")
 
     wandb.finish()
