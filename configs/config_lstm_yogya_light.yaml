@@ -1,9 +1,12 @@
 data:
-  root: ../EVOwithMS/datasets/EV-IMO/eval
+  root: ../datasets/EV-IMO/eval
+
   train_sequences:
-    - box/npz/seq_00.npz
+    - box/npz/seq_00.npz   # 67 frames, ~3s
+
   val_sequences:
-    - box/npz/seq_01.npz
+    - floor/npz/seq_01.npz # 67 frames, ~4s
+
   seq_len: 16
   nb_time_bins: 5
   patch_size: 4
@@ -11,18 +14,18 @@ data:
 
 model:
   name: convlstm
-  hidden_dim: 32
+  hidden_dim: 64
 
 training:
-  epochs: 2
-  batch_size: 2
+  epochs: 100
+  batch_size: 8
   lr: 1.0e-3
   loss: bce
   # loss_pos_weight: 10.0  # décommenter pour pondérer les patches dynamiques (BCE uniquement)
-  num_workers: 0
+  num_workers: 4
   checkpoint_dir: checkpoints
 
 wandb:
   project: ms-model
   entity: arthurfou-cole-polytechnique
-  name: ""  # vide = nom auto-genere par wandb (ex: "swept-breeze-2")
+  name: ""

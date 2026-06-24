@@ -1,0 +1,51 @@
+data:
+  root: ../datasets/EV-IMO/eval
+  train_sequences:
+    - box/npz/seq_00.npz
+    - box/npz/seq_01.npz
+    - box/npz/seq_02.npz
+    - box/npz/seq_03.npz
+    - box/npz/seq_04.npz
+    - box/npz/seq_05.npz
+    - fast/npz/seq_00.npz
+    - fast/npz/seq_01.npz
+    - wall/npz/seq_00.npz
+    - wall/npz/seq_01.npz
+  val_sequences:
+    - tabletop/npz/seq_00.npz
+    - tabletop/npz/seq_01.npz
+  # EV-IMO specific
+  slice_dt: 0.025          # 25 ms event-slice window
+  n_slices_context: 5      # pose network takes 5 consecutive slices
+  max_objects: 3           # C — max simultaneously moving objects
+
+model:
+  name: evimo
+  max_objects: 3
+  H: 260
+  W: 346
+  n_context_slices: 5
+  ecn_variant: baseline    # baseline (~2M params) | shallow (~40k params)
+
+training:
+  epochs: 50
+  batch_size: 8            # paper uses 32 on 4×GTX1080Ti; scale accordingly
+  lr: 1.0e-2               # paper: Adam lr=0.01 with cosine annealing
+  num_workers: 4
+  checkpoint_dir: checkpoints
+  evimo_loss_kwargs:
+    w_depth: 1.0
+    w_mask: 0.5
+    warp_loss_kwargs:
+      use_fine_loss: false
+      p_norm: 0.5
+    depth_loss_kwargs:
+      lambda_smooth: 0.1
+    mask_loss_kwargs:
+      lambda_smooth: 0.1
+      lambda_bce: 1.0
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: ""

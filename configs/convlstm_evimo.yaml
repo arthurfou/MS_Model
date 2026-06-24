@@ -24,6 +24,7 @@ training:
   batch_size: 4
   lr: 1.0e-3
   loss: bce
+  # loss_pos_weight: 10.0  # décommenter pour pondérer les patches dynamiques (BCE uniquement)
   num_workers: 2
   checkpoint_dir: checkpoints
 

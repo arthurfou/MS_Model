@@ -48,7 +48,13 @@ class EvimoSegDataset(Dataset):
             if mask_thicken_radius > 0:
                 fm = thicken_mask(fm, radius=mask_thicken_radius)
 
-            voxel_seq = make_voxel_sequence(ea, fm.ts, nb_of_time_bins=nb_time_bins)
+            cache_path = Path(path).with_suffix(f".voxels_bins{nb_time_bins}.pt")
+            if cache_path.exists():
+                voxel_seq = torch.load(cache_path)
+            else:
+                voxel_seq = make_voxel_sequence(ea, fm.ts, nb_of_time_bins=nb_time_bins)
+                torch.save(voxel_seq, cache_path)
+
             mask_seq = torch.stack([downsample_mask(m, patch_size) for m in fm.masks[:-1]])
 
             n = voxel_seq.shape[0]

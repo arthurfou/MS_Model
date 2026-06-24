@@ -1,0 +1,32 @@
+data:
+  root: ../datasets/EV-IMO/eval
+  train_sequences:
+    - box/npz/seq_00.npz
+  val_sequences:
+    - tabletop/npz/seq_00.npz
+  slice_dt: 0.025
+  n_slices_context: 5
+  max_objects: 3
+
+model:
+  name: evimo
+  max_objects: 3
+  H: 260
+  W: 346
+  n_context_slices: 5
+  ecn_variant: shallow      # 34k params, rapide
+
+training:
+  epochs: 2
+  batch_size: 2
+  lr: 1.0e-2
+  num_workers: 0
+  checkpoint_dir: checkpoints
+  evimo_loss_kwargs:
+    w_depth: 1.0
+    w_mask: 0.5
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: evimo-smoke

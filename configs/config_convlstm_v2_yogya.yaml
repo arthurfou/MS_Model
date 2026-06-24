@@ -32,16 +32,18 @@ data:
   mask_thicken_radius: 3
 
 model:
-  name: convlstm
-  hidden_dim: 64  # double du smoke test (32), adapte au GPU
+  name: convlstm_v2
+  hidden_dim: 64
+  # num_groups: 8   # doit diviser hidden_dim
 
 training:
   epochs: 100
-  batch_size: 8   # adapte GPU (vs 4 en CPU local)
+  batch_size: 8
   lr: 1.0e-3
-  loss: bce
-  # loss_pos_weight: 10.0  # décommenter pour pondérer les patches dynamiques (BCE uniquement)
-  num_workers: 4  # multi-core cluster
+  loss: bce_dice
+  loss_pos_weight: 10.0
+  # loss_bce_weight: 0.5   # part BCE dans bce_dice (0.5 = equilibre BCE/Dice)
+  num_workers: 4
   checkpoint_dir: checkpoints
 
 wandb:
