@@ -51,6 +51,12 @@ def load_npy_canonical(
     return EventArray(events=events, H=H, W=W, frame_ts=frame_ts)
 
 
+_LOADERS = {
+    "npz": load_evimo_npz,
+    "npy": load_npy_canonical,
+}
+
+
 def load_evimo_mask(path: Union[str, Path]) -> FrameMasks:
     """Charge le masque de segmentation GT depuis un npz EVIMO.
 
@@ -61,12 +67,6 @@ def load_evimo_mask(path: Union[str, Path]) -> FrameMasks:
     masks = data["mask"]
     ts = np.array([f["ts"] for f in data["meta"].item()["frames"]], dtype=np.float64)
     return FrameMasks(masks=masks, ts=ts)
-
-
-_LOADERS = {
-    "npz": load_evimo_npz,
-    "npy": load_npy_canonical,
-}
 
 
 def load_events(path: Union[str, Path], format: Optional[str] = None, **kwargs) -> EventArray:
