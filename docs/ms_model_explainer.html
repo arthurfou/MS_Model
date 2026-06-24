@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MS_Model — Documentation technique complète</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3249;
+    --accent: #5b6af7;
+    --accent2: #e05cf0;
+    --green: #3fda82;
+    --orange: #f5a623;
+    --red: #f05c5c;
+    --text: #d4d8f0;
+    --muted: #7a81a8;
+    --code-bg: #141722;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    display: flex;
+  }
+
+  /* ── Sidebar ───────────────────────────────── */
+  nav {
+    width: 260px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding: 24px 0;
+  }
+  nav .logo {
+    padding: 0 20px 20px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  nav a {
+    display: block;
+    padding: 7px 20px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: color .15s, background .15s;
+  }
+  nav a:hover { color: var(--text); background: var(--surface2); }
+  nav .section-label {
+    padding: 14px 20px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* ── Main ────────────────────────────────── */
+  main {
+    flex: 1;
+    max-width: 960px;
+    padding: 48px 56px;
+    overflow-x: hidden;
+  }
+  h1 { font-size: 2.2em; font-weight: 800; margin-bottom: 10px; line-height: 1.2; }
+  h2 {
+    font-size: 1.5em; font-weight: 700; margin: 56px 0 18px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: #fff;
+  }
+  h3 { font-size: 1.15em; font-weight: 600; margin: 32px 0 12px; color: #c8cef0; }
+  h4 { font-size: 1em; font-weight: 600; margin: 20px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: 12px; }
+  p { margin-bottom: 14px; }
+  ul, ol { margin: 10px 0 14px 20px; }
+  li { margin-bottom: 5px; }
+  strong { color: #fff; }
+  em { color: var(--orange); font-style: normal; }
+
+  /* ── Code ────────────────────────────────── */
+  code {
+    font-family: var(--mono);
+    font-size: .85em;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #a8c4ff;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    font-family: var(--mono);
+    font-size: .85em;
+    line-height: 1.6;
+    color: #c8d8ff;
+  }
+  pre .c { color: #4a5580; }
+  pre .k { color: #c792ea; }
+  pre .s { color: #c3e88d; }
+  pre .n { color: #82aaff; }
+  pre .t { color: #ffcb6b; }
+  pre .num { color: #f78c6c; }
+
+  /* ── Cards ───────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .card-row {
+    display: flex;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .card-row .card { flex: 1; margin: 0; }
+
+  /* ── Badges ──────────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    margin: 0 3px;
+  }
+  .badge-blue { background: #1e2a6e; color: #7ea8ff; }
+  .badge-green { background: #1a3d2b; color: var(--green); }
+  .badge-purple { background: #2d1a4a; color: #c792ea; }
+  .badge-orange { background: #3d2710; color: var(--orange); }
+
+  /* ── Tables ──────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; }
+  th {
+    background: var(--surface2);
+    padding: 9px 14px;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* ── Info boxes ──────────────────────────── */
+  .info-box {
+    border-left: 3px solid var(--accent);
+    background: #131830;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .warn-box {
+    border-left: 3px solid var(--orange);
+    background: #1e1808;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  /* ── SVG diagrams ────────────────────────── */
+  .diagram-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .diagram-wrap svg { max-width: 100%; height: auto; }
+  .diagram-caption {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  /* ── Divider ─────────────────────────────── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── Scrollbar ───────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Math-style spans ────────────────────── */
+  .math { font-family: var(--mono); font-size: .9em; color: #ffcb6b; background: #1e1808; padding: 1px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SIDEBAR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<nav>
+  <div class="logo">MS_Model</div>
+  <div class="section-label">Introduction</div>
+  <a href="#cameras">Caméras événementielles</a>
+  <a href="#dataset">Dataset EVIMO</a>
+  <div class="section-label">Représentations</div>
+  <a href="#voxel">Voxel Grid</a>
+  <a href="#slice">Event Slice</a>
+  <a href="#comparison">Comparaison</a>
+  <div class="section-label">Modèle ConvLSTM</div>
+  <a href="#convlstm-data">Pipeline données</a>
+  <a href="#convlstm-arch">Architecture</a>
+  <a href="#convlstm-v2">ConvLSTM v2</a>
+  <a href="#convlstm-loss">Losses</a>
+  <div class="section-label">Modèle EV-IMO</div>
+  <a href="#evimo-overview">Vue d'ensemble</a>
+  <a href="#ecn">ECN Backbone</a>
+  <a href="#depth-net">Depth Network</a>
+  <a href="#pose-net">Pose Network</a>
+  <a href="#flow">Optical Flow</a>
+  <a href="#evimo-loss">Losses EV-IMO</a>
+  <div class="section-label">Entraînement</div>
+  <a href="#training">Pipeline train.py</a>
+  <a href="#configs">Configs</a>
+</nav>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MAIN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<main>
+
+<h1>MS_Model</h1>
+<p style="color:var(--muted); font-size:14px; margin-bottom:32px;">
+  Documentation technique — Motion Segmentation sur caméras événementielles
+  <span class="badge badge-blue">ConvLSTM</span>
+  <span class="badge badge-purple">EV-IMO</span>
+  <span class="badge badge-green">PyTorch</span>
+</p>
+
+<!-- ━━ SECTION 1 : CAMERAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="cameras">1. Caméras événementielles</h2>
+
+<p>Une caméra événementielle (Dynamic Vision Sensor, DVS) ne capture pas des images à intervalle régulier. Chaque pixel déclenche de façon <strong>asynchrone</strong> un événement dès que la variation de luminosité dépasse un seuil logarithmique.</p>
+
+<div class="card-row">
+  <div class="card">
+    <h4>Caméra frame classique</h4>
+    <ul>
+      <li>Captures synchronisées (ex. 30 fps)</li>
+      <li>Toute la scène en même temps</li>
+      <li>Motion blur à haute vitesse</li>
+      <li>Latence ~33 ms</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Caméra événementielle (DVS)</h4>
+    <ul>
+      <li>Événements asynchrones (~µs)</li>
+      <li>Seuls les <em>changements</em> sont enregistrés</li>
+      <li>Pas de motion blur</li>
+      <li>Latence ~1 µs, très faible consommation</li>
+    </ul>
+  </div>
+</div>
+
+<p>Chaque événement est un tuple <strong>(t, x, y, p)</strong> :</p>
+<table>
+  <tr><th>Champ</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>t</code></td><td>float (s)</td><td>Timestamp microseconde</td></tr>
+  <tr><td><code>x, y</code></td><td>uint16</td><td>Coordonnée pixel (0..W-1, 0..H-1)</td></tr>
+  <tr><td><code>p</code></td><td>bool</td><td>Polarité : 1 = luminosité ↑ / 0 = luminosité ↓</td></tr>
+</table>
+
+<!-- SVG : flux d'events -->
+<div class="diagram-wrap">
+<svg width="700" height="180" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+  </defs>
+  <!-- Timeline -->
+  <line x1="60" y1="90" x2="640" y2="90" stroke="#2e3249" stroke-width="2"/>
+  <text x="60" y="115" fill="#7a81a8" font-size="12" font-family="monospace">t₀</text>
+  <text x="630" y="115" fill="#7a81a8" font-size="12" font-family="monospace">t</text>
+  <line x1="635" y1="90" x2="648" y2="90" stroke="#5b6af7" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Events (pos = green, neg = red) -->
+  <!-- pos -->
+  <circle cx="120" cy="70" r="7" fill="#3fda82" opacity=".9"/>
+  <circle cx="185" cy="60" r="7" fill="#3fda82" opacity=".9"/>
+  <circle cx="280" cy="75" r="7" fill="#3fda82" opacity=".9"/>
+  <circle cx="370" cy="55" r="7" fill="#3fda82" opacity=".9"/>
+  <circle cx="450" cy="68" r="7" fill="#3fda82" opacity=".9"/>
+  <circle cx="560" cy="72" r="7" fill="#3fda82" opacity=".9"/>
+  <circle cx="610" cy="60" r="7" fill="#3fda82" opacity=".9"/>
+  <!-- neg -->
+  <circle cx="150" cy="110" r="7" fill="#f05c5c" opacity=".9"/>
+  <circle cx="230" cy="118" r="7" fill="#f05c5c" opacity=".9"/>
+  <circle cx="320" cy="105" r="7" fill="#f05c5c" opacity=".9"/>
+  <circle cx="415" cy="112" r="7" fill="#f05c5c" opacity=".9"/>
+  <circle cx="490" cy="100" r="7" fill="#f05c5c" opacity=".9"/>
+  <circle cx="580" cy="114" r="7" fill="#f05c5c" opacity=".9"/>
+
+  <!-- Legend -->
+  <circle cx="80" cy="160" r="7" fill="#3fda82"/>
+  <text x="93" y="164" fill="#7a81a8" font-size="12">événement positif (p=1, luminosité ↑)</text>
+  <circle cx="350" cy="160" r="7" fill="#f05c5c"/>
+  <text x="363" y="164" fill="#7a81a8" font-size="12">événement négatif (p=0, luminosité ↓)</text>
+
+  <text x="350" y="22" fill="#5b6af7" font-size="13" text-anchor="middle" font-weight="bold">Flux asynchrone d'événements (t, x, y, p)</text>
+</svg>
+<div class="diagram-caption">Flux brut d'événements — chaque point est un événement individuel déclenché par un pixel</div>
+</div>
+
+<p>Le modèle lit les événements depuis des fichiers <code>.npz</code> via <code>ms_model/io/loaders.py</code> et les stocke dans un <code>EventArray</code> (classe dataclass définie dans <code>ms_model/io/events.py</code>).</p>
+
+<!-- ━━ SECTION 2 : DATASET ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="dataset">2. Dataset EVIMO</h2>
+
+<p>Le projet utilise le dataset <strong>EV-IMO</strong> (IROS 2019) enregistré avec une caméra DAVIS 240C (260×346 pixels). Les séquences sont classées par scène : <code>box</code>, <code>fast</code>, <code>wall</code>, <code>tabletop</code>, <code>plainwall</code>.</p>
+
+<div class="card">
+  <h4>Contenu d'un fichier .npz</h4>
+  <table>
+    <tr><th>Clé</th><th>Forme</th><th>Description</th></tr>
+    <tr><td><code>events</code></td><td>(N, 4)</td><td>Flux brut : t, x, y, p</td></tr>
+    <tr><td><code>depth</code></td><td>(T, 260, 346)</td><td>Cartes de profondeur GT (mm), 0=fond</td></tr>
+    <tr><td><code>mask</code></td><td>(T, 260, 346)</td><td>Masques GT (0=fond, 1000=obj1, 2000=obj2…)</td></tr>
+    <tr><td><code>meta</code></td><td>dict</td><td>Timestamps frames, intrinsèques K, vélocités caméra</td></tr>
+  </table>
+</div>
+
+<!-- ━━ SECTION 3 : REPRESENTATIONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="voxel">3. Représentation Voxel Grid</h2>
+
+<p>Utilisée par le pipeline <strong>ConvLSTM</strong>. Le flux d'événements dans une fenêtre temporelle est encodé en un tenseur 3D : <strong>(nb_bins, H, W)</strong>.</p>
+
+<h3>Principe</h3>
+<p>Le temps est divisé en <code>nb_bins</code> intervalles égaux. Chaque événement est distribué par <strong>interpolation bilinéaire trilinéaire</strong> sur les voxels voisins (interpolation spatiale + temporelle), pondéré par sa polarité (±1).</p>
+
+<!-- SVG : voxel grid -->
+<div class="diagram-wrap">
+<svg width="620" height="280" viewBox="0 0 620 280" xmlns="http://www.w3.org/2000/svg">
+  <!-- Événements sur timeline -->
+  <text x="30" y="22" fill="#5b6af7" font-size="13" font-weight="bold">Construction de la Voxel Grid</text>
+
+  <!-- time axis -->
+  <text x="30" y="55" fill="#7a81a8" font-size="11">t₀</text>
+  <line x1="50" y1="60" x2="350" y2="60" stroke="#2e3249" stroke-width="2"/>
+  <text x="350" y="55" fill="#7a81a8" font-size="11">t₁</text>
+
+  <!-- bins markers -->
+  <line x1="110" y1="55" x2="110" y2="65" stroke="#2e3249" stroke-width="1"/>
+  <line x1="170" y1="55" x2="170" y2="65" stroke="#2e3249" stroke-width="1"/>
+  <line x1="230" y1="55" x2="230" y2="65" stroke="#2e3249" stroke-width="1"/>
+  <line x1="290" y1="55" x2="290" y2="65" stroke="#2e3249" stroke-width="1"/>
+  <text x="72" y="78" fill="#7a81a8" font-size="10">bin 0</text>
+  <text x="132" y="78" fill="#7a81a8" font-size="10">bin 1</text>
+  <text x="192" y="78" fill="#7a81a8" font-size="10">bin 2</text>
+  <text x="252" y="78" fill="#7a81a8" font-size="10">bin 3</text>
+  <text x="310" y="78" fill="#7a81a8" font-size="10">bin 4</text>
+
+  <!-- events on timeline -->
+  <circle cx="90" cy="60" r="6" fill="#3fda82"/><text x="86" y="48" fill="#3fda82" font-size="9">+1</text>
+  <circle cx="140" cy="60" r="6" fill="#f05c5c"/><text x="136" y="48" fill="#f05c5c" font-size="9">-1</text>
+  <circle cx="195" cy="60" r="6" fill="#3fda82"/><text x="191" y="48" fill="#3fda82" font-size="9">+1</text>
+  <circle cx="250" cy="60" r="6" fill="#f05c5c"/><text x="246" y="48" fill="#f05c5c" font-size="9">-1</text>
+  <circle cx="320" cy="60" r="6" fill="#3fda82"/><text x="316" y="48" fill="#3fda82" font-size="9">+1</text>
+
+  <!-- arrow down -->
+  <line x1="200" y1="88" x2="200" y2="105" stroke="#5b6af7" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="205" y="100" fill="#5b6af7" font-size="11">interpolation tri-linéaire</text>
+
+  <!-- Voxel grid 3D representation -->
+  <!-- 5 slices side by side -->
+  <g transform="translate(30, 120)">
+    <!-- Slice 0 -->
+    <rect x="0" y="0" width="70" height="70" fill="#1a1d27" stroke="#2e3249" stroke-width="1" rx="3"/>
+    <rect x="10" y="10" width="15" height="15" fill="#3fda82" opacity=".6" rx="1"/>
+    <rect x="30" y="25" width="12" height="12" fill="#3fda82" opacity=".3" rx="1"/>
+    <text x="35" y="82" fill="#7a81a8" font-size="10" text-anchor="middle">bin 0</text>
+
+    <!-- Slice 1 -->
+    <rect x="80" y="0" width="70" height="70" fill="#1a1d27" stroke="#2e3249" stroke-width="1" rx="3"/>
+    <rect x="95" y="15" width="10" height="10" fill="#f05c5c" opacity=".7" rx="1"/>
+    <rect x="120" y="30" width="14" height="14" fill="#3fda82" opacity=".4" rx="1"/>
+    <text x="115" y="82" fill="#7a81a8" font-size="10" text-anchor="middle">bin 1</text>
+
+    <!-- Slice 2 -->
+    <rect x="160" y="0" width="70" height="70" fill="#1a1d27" stroke="#2e3249" stroke-width="1" rx="3"/>
+    <rect x="170" y="8" width="20" height="20" fill="#3fda82" opacity=".8" rx="1"/>
+    <rect x="200" y="35" width="12" height="12" fill="#f05c5c" opacity=".5" rx="1"/>
+    <text x="195" y="82" fill="#7a81a8" font-size="10" text-anchor="middle">bin 2</text>
+
+    <!-- Slice 3 -->
+    <rect x="240" y="0" width="70" height="70" fill="#1a1d27" stroke="#2e3249" stroke-width="1" rx="3"/>
+    <rect x="250" y="20" width="14" height="14" fill="#f05c5c" opacity=".6" rx="1"/>
+    <rect x="280" y="10" width="16" height="16" fill="#3fda82" opacity=".3" rx="1"/>
+    <text x="275" y="82" fill="#7a81a8" font-size="10" text-anchor="middle">bin 3</text>
+
+    <!-- Slice 4 -->
+    <rect x="320" y="0" width="70" height="70" fill="#1a1d27" stroke="#2e3249" stroke-width="1" rx="3"/>
+    <rect x="330" y="12" width="18" height="18" fill="#3fda82" opacity=".9" rx="1"/>
+    <rect x="360" y="40" width="13" height="13" fill="#f05c5c" opacity=".4" rx="1"/>
+    <text x="355" y="82" fill="#7a81a8" font-size="10" text-anchor="middle">bin 4</text>
+
+    <!-- brace -->
+    <line x1="0" y1="92" x2="390" y2="92" stroke="#5b6af7" stroke-width="1.5"/>
+    <text x="195" y="107" fill="#5b6af7" font-size="12" text-anchor="middle" font-weight="bold">Voxel Grid (5, H, W) — contient des valeurs ∈ ℝ (±)</text>
+  </g>
+</svg>
+<div class="diagram-caption">Conversion d'une fenêtre d'événements en Voxel Grid (5 bins temporels). Valeurs positives = polarité +1, négatives = polarité −1, interpolées.</div>
+</div>
+
+<pre><code><span class="c"># ms_model/representations/voxel.py</span>
+<span class="k">def</span> <span class="n">to_voxel_grid</span>(xs, ys, ts, ps, H, W, nb_of_time_bins=<span class="num">5</span>):
+    <span class="c"># Normalise le temps → [0, nb_bins-1]</span>
+    t = (ts - ts[<span class="num">0</span>]) * (nb_of_time_bins - <span class="num">1</span>) / (ts[-<span class="num">1</span>] - ts[<span class="num">0</span>])
+    <span class="c"># Interpolation trilinéaire (8 voisins : left/right × x × y × t)</span>
+    weight = polarity * (1 - |lim_x - x|) * (1 - |lim_y - y|) * (1 - |lim_t - t|)
+    voxel_grid.index_add_(...)
+    <span class="k">return</span> voxel_grid  <span class="c"># (nb_bins, H, W) float32</span></code></pre>
+
+<!-- ━━ SECTION 4 : EVENT SLICE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="slice">4. Représentation Event Slice (3 canaux)</h2>
+
+<p>Utilisée par le pipeline <strong>EV-IMO</strong>. Une fenêtre temporelle fixe de <strong>25 ms</strong> est convertie en un tenseur <strong>(3, H, W)</strong> :</p>
+
+<div class="card-row">
+  <div class="card">
+    <h4>Canal 0 — Comptage positif</h4>
+    <p>Nombre d'événements <code>p=1</code> par pixel dans la fenêtre. Représente les zones qui ont brillé.</p>
+  </div>
+  <div class="card">
+    <h4>Canal 1 — Comptage négatif</h4>
+    <p>Nombre d'événements <code>p=0</code> par pixel. Représente les zones qui ont assombri.</p>
+  </div>
+  <div class="card">
+    <h4>Canal 2 — Timestamp moyen</h4>
+    <p>Timestamp moyen normalisé dans <span class="math">[0, 1]</span> pour les pixels actifs. 0 = pas d'événement.</p>
+  </div>
+</div>
+
+<!-- SVG : event slice -->
+<div class="diagram-wrap">
+<svg width="580" height="220" viewBox="0 0 580 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="290" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">Event Slice (3, H, W) — fenêtre δt = 25 ms</text>
+
+  <!-- Canal 0 -->
+  <rect x="30" y="40" width="140" height="120" fill="#1a1d27" stroke="#3fda82" stroke-width="1.5" rx="5"/>
+  <rect x="45" y="55" width="20" height="20" fill="#3fda82" opacity=".9" rx="2"/>
+  <rect x="80" y="70" width="14" height="14" fill="#3fda82" opacity=".5" rx="2"/>
+  <rect x="120" y="50" width="25" height="25" fill="#3fda82" opacity=".7" rx="2"/>
+  <rect x="55" y="110" width="16" height="16" fill="#3fda82" opacity=".4" rx="2"/>
+  <rect x="130" y="120" width="18" height="18" fill="#3fda82" opacity=".8" rx="2"/>
+  <text x="100" y="178" fill="#3fda82" font-size="12" text-anchor="middle" font-weight="600">ch0 : pos count</text>
+  <text x="100" y="192" fill="#7a81a8" font-size="10" text-anchor="middle">valeurs ∈ ℕ (nb events +)</text>
+
+  <!-- Canal 1 -->
+  <rect x="210" y="40" width="140" height="120" fill="#1a1d27" stroke="#f05c5c" stroke-width="1.5" rx="5"/>
+  <rect x="225" y="60" width="18" height="18" fill="#f05c5c" opacity=".7" rx="2"/>
+  <rect x="265" y="50" width="22" height="22" fill="#f05c5c" opacity=".9" rx="2"/>
+  <rect x="310" y="80" width="15" height="15" fill="#f05c5c" opacity=".5" rx="2"/>
+  <rect x="240" y="115" width="20" height="20" fill="#f05c5c" opacity=".6" rx="2"/>
+  <rect x="320" y="130" width="12" height="12" fill="#f05c5c" opacity=".8" rx="2"/>
+  <text x="280" y="178" fill="#f05c5c" font-size="12" text-anchor="middle" font-weight="600">ch1 : neg count</text>
+  <text x="280" y="192" fill="#7a81a8" font-size="10" text-anchor="middle">valeurs ∈ ℕ (nb events −)</text>
+
+  <!-- Canal 2 -->
+  <rect x="390" y="40" width="140" height="120" fill="#1a1d27" stroke="#ffcb6b" stroke-width="1.5" rx="5"/>
+  <!-- gradient de couleur simulé -->
+  <rect x="405" y="55" width="20" height="20" fill="#ffcb6b" opacity=".3" rx="2"/>
+  <rect x="440" y="65" width="15" height="15" fill="#ffcb6b" opacity=".6" rx="2"/>
+  <rect x="470" y="50" width="22" height="22" fill="#ffcb6b" opacity=".9" rx="2"/>
+  <rect x="415" y="110" width="16" height="16" fill="#ffcb6b" opacity=".45" rx="2"/>
+  <rect x="490" y="120" width="18" height="18" fill="#ffcb6b" opacity=".75" rx="2"/>
+  <text x="460" y="178" fill="#ffcb6b" font-size="12" text-anchor="middle" font-weight="600">ch2 : ts normalisé</text>
+  <text x="460" y="192" fill="#7a81a8" font-size="10" text-anchor="middle">valeurs ∈ [0, 1] (tardif = clair)</text>
+</svg>
+<div class="diagram-caption">Les 3 canaux d'un event slice de 25 ms. Le canal timestamp encode l'ordre temporel des événements au sein de la fenêtre.</div>
+</div>
+
+<pre><code><span class="c"># ms_model/representations/event_slice.py</span>
+<span class="k">def</span> <span class="n">to_event_slice</span>(ea, t_lo, t_hi) -> <span class="t">Tensor</span>[<span class="num">3</span>,H,W]:
+    t_norm = (t - t_lo) / (t_hi - t_lo)       <span class="c"># normalise → [0,1]</span>
+    np.add.at(pos_count, (y[pos], x[pos]), <span class="num">1.0</span>)
+    np.add.at(neg_count, (y[neg], x[neg]), <span class="num">1.0</span>)
+    np.add.at(ts_sum,    (y,      x     ), t_norm)
+    ts_agg = np.where(ts_cnt > <span class="num">0</span>, ts_sum / ts_cnt, <span class="num">0.0</span>)
+    <span class="k">return</span> torch.from_numpy(np.stack([pos_count, neg_count, ts_agg]))</code></pre>
+
+<!-- ━━ SECTION 5 : COMPARAISON ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="comparison">5. Comparaison des représentations</h2>
+
+<table>
+  <tr>
+    <th></th>
+    <th>Voxel Grid</th>
+    <th>Event Slice (3 canaux)</th>
+  </tr>
+  <tr>
+    <td>Forme</td>
+    <td><code>(B, T, nb_bins, H, W)</code></td>
+    <td><code>(B, N_s, 3, H, W)</code></td>
+  </tr>
+  <tr>
+    <td>Résolution temporelle</td>
+    <td>Flexible (bins = 5 → 20)</td>
+    <td>Fixe : δt = 25 ms par slice</td>
+  </tr>
+  <tr>
+    <td>Valeurs</td>
+    <td>Réelles ∈ ℝ (interpolation bilinéaire)</td>
+    <td>Comptes ∈ ℕ + timestamp ∈ [0,1]</td>
+  </tr>
+  <tr>
+    <td>Interprétabilité</td>
+    <td>Difficile (mélange pol. + temps)</td>
+    <td>Directe : un canal par polarité</td>
+  </tr>
+  <tr>
+    <td>Contexte temporel</td>
+    <td>Implicite (séquence de grids)</td>
+    <td>Explicite (5 slices = 125 ms de contexte)</td>
+  </tr>
+  <tr>
+    <td>Utilisé par</td>
+    <td>ConvLSTM, ConvLSTM v2</td>
+    <td>EV-IMO</td>
+  </tr>
+  <tr>
+    <td>Référence</td>
+    <td>Klenk et al. (TUM 2023 — DEVO)</td>
+    <td>Mitrokhin et al. (IROS 2019 — EV-IMO)</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ━━ SECTION 6 : CONVLSTM PIPELINE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="convlstm-data">6. Pipeline ConvLSTM — Traitement des données</h2>
+
+<p>Le dataset <code>EvimoSegDataset</code> (<code>ms_model/data/evimo_dataset.py</code>) prépare les données pour le modèle ConvLSTM :</p>
+
+<!-- SVG : pipeline ConvLSTM data -->
+<div class="diagram-wrap">
+<svg width="700" height="200" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+  </defs>
+  <text x="350" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">Pipeline données ConvLSTM</text>
+
+  <!-- Boxes -->
+  <rect x="10" y="50" width="110" height="55" rx="7" fill="#22263a" stroke="#2e3249" stroke-width="1.5"/>
+  <text x="65" y="74" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">séq. .npz</text>
+  <text x="65" y="90" fill="#7a81a8" font-size="10" text-anchor="middle">événements</text>
+  <text x="65" y="103" fill="#7a81a8" font-size="10" text-anchor="middle">+ masques GT</text>
+
+  <line x1="120" y1="77" x2="148" y2="77" stroke="#5b6af7" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <rect x="150" y="50" width="130" height="55" rx="7" fill="#22263a" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="215" y="71" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">to_voxel_grid()</text>
+  <text x="215" y="87" fill="#7a81a8" font-size="10" text-anchor="middle">Fenêtre [t_i, t_{i+1}]</text>
+  <text x="215" y="100" fill="#7a81a8" font-size="10" text-anchor="middle">→ (nb_bins, H, W)</text>
+
+  <line x1="280" y1="77" x2="308" y2="77" stroke="#5b6af7" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <rect x="310" y="50" width="130" height="55" rx="7" fill="#22263a" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="375" y="71" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">Séquence T</text>
+  <text x="375" y="87" fill="#7a81a8" font-size="10" text-anchor="middle">stack T voxel grids</text>
+  <text x="375" y="100" fill="#7a81a8" font-size="10" text-anchor="middle">→ (T, nb_bins, H, W)</text>
+
+  <line x1="440" y1="77" x2="468" y2="77" stroke="#5b6af7" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <rect x="470" y="50" width="130" height="55" rx="7" fill="#22263a" stroke="#2e3249" stroke-width="1.5"/>
+  <text x="535" y="71" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">DataLoader</text>
+  <text x="535" y="87" fill="#7a81a8" font-size="10" text-anchor="middle">batch → (B, T, nb_bins,</text>
+  <text x="535" y="100" fill="#7a81a8" font-size="10" text-anchor="middle">Hp, Wp)</text>
+
+  <!-- Shapes annotations -->
+  <text x="215" y="145" fill="#ffcb6b" font-size="11" text-anchor="middle">patch_size = 4 → H/4 × W/4</text>
+  <text x="535" y="145" fill="#ffcb6b" font-size="11" text-anchor="middle">shuffle=True, num_workers=N</text>
+  <text x="350" y="168" fill="#7a81a8" font-size="10" text-anchor="middle">mask thickening optionnel (morphologie) • seq_len = T pas temporels</text>
+</svg>
+<div class="diagram-caption">La séquence de voxel grids est construite frame-par-frame puis empilée. Le masque GT est redimensionné à la résolution des patches.</div>
+</div>
+
+<!-- ━━ SECTION 7 : CONVLSTM ARCHITECTURE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="convlstm-arch">7. Architecture ConvLSTM v1</h2>
+
+<p>Le modèle <code>ConvLSTMSeg</code> (<code>ms_model/models/convlstm.py</code>) est un réseau récurrent convolutif qui traite une <strong>séquence temporelle</strong> de voxel grids.</p>
+
+<!-- SVG : architecture ConvLSTM -->
+<div class="diagram-wrap">
+<svg width="700" height="280" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+    <marker id="arr3r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#e05cf0"/>
+    </marker>
+  </defs>
+  <text x="350" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">ConvLSTMSeg v1 — Forward (séquence T=4)</text>
+
+  <!-- Repeated block for each timestep -->
+  <!-- t=0 -->
+  <rect x="10" y="45" width="75" height="50" rx="5" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="47" y="67" fill="#3fda82" font-size="10" text-anchor="middle" font-weight="600">Encoder</text>
+  <text x="47" y="83" fill="#7a81a8" font-size="9" text-anchor="middle">conv stride-2</text>
+  <text x="47" y="100" fill="#7a81a8" font-size="9" text-anchor="middle">× patch_size/2</text>
+  <text x="47" y="115" fill="#ffcb6b" font-size="9" text-anchor="middle">(B,nb_bins,H,W)</text>
+  <text x="47" y="128" fill="#ffcb6b" font-size="9" text-anchor="middle">→(B,hdim,Hp,Wp)</text>
+
+  <line x1="85" y1="70" x2="105" y2="70" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+  <!-- LSTM cell t=0 -->
+  <rect x="107" y="45" width="80" height="60" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="147" y="67" fill="#c792ea" font-size="10" text-anchor="middle" font-weight="600">ConvLSTM</text>
+  <text x="147" y="80" fill="#c792ea" font-size="10" text-anchor="middle" font-weight="600">Cell</text>
+  <text x="147" y="95" fill="#7a81a8" font-size="9" text-anchor="middle">h, c ← f,i,o,g</text>
+  <text x="147" y="115" fill="#ffcb6b" font-size="8" text-anchor="middle">t=0</text>
+
+  <!-- head t=0 -->
+  <line x1="187" y1="70" x2="205" y2="70" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#arr3)"/>
+  <rect x="207" y="55" width="50" height="35" rx="5" fill="#1e1808" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="232" y="77" fill="#f5a623" font-size="10" text-anchor="middle">Head</text>
+  <text x="232" y="95" fill="#ffcb6b" font-size="8" text-anchor="middle">logit t=0</text>
+
+  <!-- t=1 -->
+  <rect x="290" y="45" width="75" height="50" rx="5" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="327" y="67" fill="#3fda82" font-size="10" text-anchor="middle" font-weight="600">Encoder</text>
+  <text x="327" y="83" fill="#7a81a8" font-size="9" text-anchor="middle">partagé</text>
+
+  <line x1="365" y1="70" x2="385" y2="70" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#arr3)"/>
+  <rect x="387" y="45" width="80" height="60" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="427" y="67" fill="#c792ea" font-size="10" text-anchor="middle" font-weight="600">ConvLSTM</text>
+  <text x="427" y="80" fill="#c792ea" font-size="10" text-anchor="middle" font-weight="600">Cell</text>
+  <text x="427" y="115" fill="#ffcb6b" font-size="8" text-anchor="middle">t=1</text>
+  <line x1="467" y1="70" x2="485" y2="70" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#arr3)"/>
+  <rect x="487" y="55" width="50" height="35" rx="5" fill="#1e1808" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="512" y="77" fill="#f5a623" font-size="10" text-anchor="middle">Head</text>
+  <text x="512" y="95" fill="#ffcb6b" font-size="8" text-anchor="middle">logit t=1</text>
+
+  <!-- dots -->
+  <text x="575" y="75" fill="#7a81a8" font-size="20">...</text>
+
+  <!-- Hidden state transfer arrow -->
+  <path d="M147 105 Q147 155 200 155 Q260 155 327 145" stroke="#e05cf0" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr3r)"/>
+  <text x="250" y="170" fill="#e05cf0" font-size="11" text-anchor="middle">transfert état (h, c) entre timesteps →</text>
+
+  <!-- Output shape -->
+  <rect x="30" y="205" width="620" height="55" rx="7" fill="#22263a" stroke="#2e3249" stroke-width="1"/>
+  <text x="340" y="228" fill="#d4d8f0" font-size="12" text-anchor="middle" font-weight="600">Output : torch.stack(outputs) → (B, T, 1, Hp, Wp) — logits avant sigmoid</text>
+  <text x="340" y="248" fill="#7a81a8" font-size="11" text-anchor="middle">Hp = H / patch_size, Wp = W / patch_size</text>
+</svg>
+<div class="diagram-caption">Déroulement temporel du ConvLSTM : à chaque timestep, l'encodeur extrait des features spatiales, la cellule LSTM maintient un état caché, et la tête prédit les logits de segmentation.</div>
+</div>
+
+<h3>Cellule ConvLSTMCell</h3>
+<p>La cellule ConvLSTM fonctionne comme un LSTM classique, mais les opérations matricielles sont remplacées par des convolutions 2D :</p>
+
+<pre><code><span class="c"># ms_model/models/convlstm.py — ConvLSTMCell</span>
+gates = Conv2d(in_dim + hidden_dim, 4*hidden_dim)(cat([x, h]))   <span class="c"># 4 gates</span>
+i, f, o, g = chunk(gates, 4)
+i, f, o = sigmoid(i), sigmoid(f), sigmoid(o)   <span class="c"># input, forget, output gates</span>
+g = tanh(g)                                     <span class="c"># cell gate</span>
+c = f * c + i * g                               <span class="c"># cell state update</span>
+h = o * tanh(c)                                 <span class="c"># hidden state</span></code></pre>
+
+<h2 id="convlstm-v2">8. ConvLSTM v2 — Encodeur enrichi</h2>
+
+<p>La version <code>convlstm_v2</code> améliore v1 avec :</p>
+<ul>
+  <li><strong>2 convolutions par étage</strong> (vs 1) — plus de capacité d'extraction de features</li>
+  <li><strong>GroupNorm</strong> après chaque conv — remplace BatchNorm, stable sur petits batchs</li>
+  <li><strong>Tête à 2 couches</strong> <code>1×1 conv</code> — permet une combinaison non-linéaire avant le logit</li>
+</ul>
+
+<table>
+  <tr><th>Aspect</th><th>v1 (convlstm)</th><th>v2 (convlstm_v2)</th></tr>
+  <tr><td>Encoder</td><td>Conv2d(stride=2) + ReLU</td><td>2×(Conv2d + GroupNorm + ReLU)</td></tr>
+  <tr><td>Normalisation</td><td>Aucune</td><td>GroupNorm (num_groups=8)</td></tr>
+  <tr><td>Tête</td><td>Conv2d(1×1) → 1 canal</td><td>Conv2d(1×1) → ReLU → Conv2d(1×1)</td></tr>
+  <tr><td>hidden_dim par défaut</td><td>32</td><td>64</td></tr>
+</table>
+
+<!-- ━━ SECTION : CONVLSTM LOSS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="convlstm-loss">9. Losses ConvLSTM</h2>
+
+<p>Définie dans <code>ms_model/training/losses.py</code>. Plusieurs options disponibles :</p>
+
+<table>
+  <tr><th>Nom</th><th>Formule</th><th>Cas d'usage</th></tr>
+  <tr>
+    <td><code>bce</code></td>
+    <td>Binary Cross-Entropy standard</td>
+    <td>Baseline, scènes équilibrées</td>
+  </tr>
+  <tr>
+    <td><code>bce_weighted</code></td>
+    <td>BCE avec <code>pos_weight</code> pour rééquilibrer fond/objet</td>
+    <td>Objets petits (peu de pixels positifs)</td>
+  </tr>
+  <tr>
+    <td><code>focal</code></td>
+    <td><span class="math">-(1-pₜ)^γ log(pₜ)</span> — pénalise plus les exemples faciles</td>
+    <td>Déséquilibre fond/objet sévère</td>
+  </tr>
+  <tr>
+    <td><code>focal+bce</code></td>
+    <td>Combinaison pondérée focal + BCE</td>
+    <td>Stabilité + focus sur cas difficiles</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ━━ SECTION : EVIMO OVERVIEW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="evimo-overview">10. Pipeline EV-IMO — Vue d'ensemble</h2>
+
+<p>EV-IMO est un pipeline de <strong>Structure-from-Motion compositionnel</strong> qui prédit simultanément trois sorties à partir d'event slices :</p>
+
+<div class="card-row">
+  <div class="card">
+    <h4>Depth</h4>
+    <p><code>(B, 1, H, W)</code><br>Profondeur de scène en mm (positive). Supervisé par le GT EVIMO.</p>
+  </div>
+  <div class="card">
+    <h4>Poses</h4>
+    <p><code>(B, 6+3C)</code><br>Ego-motion 6-DoF + 3D translations par objet. Auto-supervisé via warp loss.</p>
+  </div>
+  <div class="card">
+    <h4>Masks</h4>
+    <p><code>(B, C+1, H, W)</code><br>Poids de mélange softmax : fond + C objets. Semi-supervisé.</p>
+  </div>
+</div>
+
+<!-- SVG : overview EV-IMO -->
+<div class="diagram-wrap">
+<svg width="700" height="360" viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a4" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+  </defs>
+  <text x="350" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">Pipeline EV-IMO — Forward Pass</text>
+
+  <!-- Input -->
+  <rect x="10" y="45" width="120" height="80" rx="7" fill="#22263a" stroke="#5b6af7" stroke-width="1.5"/>
+  <text x="70" y="68" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">Event Slices</text>
+  <text x="70" y="84" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 5, 3, H, W)</text>
+  <text x="70" y="98" fill="#7a81a8" font-size="10" text-anchor="middle">+ Intrinsèques K</text>
+  <text x="70" y="112" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 3, 3)</text>
+
+  <!-- Fork arrows -->
+  <line x1="130" y1="85" x2="155" y2="65" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+  <line x1="130" y1="85" x2="155" y2="115" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+
+  <!-- Depth Network -->
+  <rect x="157" y="40" width="130" height="60" rx="7" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="222" y="63" fill="#3fda82" font-size="11" text-anchor="middle" font-weight="600">DepthNetwork</text>
+  <text x="222" y="79" fill="#7a81a8" font-size="10" text-anchor="middle">ECN(slice centrale)</text>
+  <text x="222" y="93" fill="#7a81a8" font-size="10" text-anchor="middle">+ Softplus</text>
+
+  <!-- Pose Network -->
+  <rect x="157" y="110" width="130" height="60" rx="7" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="222" y="133" fill="#c792ea" font-size="11" text-anchor="middle" font-weight="600">PoseNetwork</text>
+  <text x="222" y="149" fill="#7a81a8" font-size="10" text-anchor="middle">ECN(5 slices concat)</text>
+  <text x="222" y="163" fill="#7a81a8" font-size="10" text-anchor="middle">→ poses + masks</text>
+
+  <!-- Arrows out depth -->
+  <line x1="287" y1="70" x2="320" y2="70" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+  <!-- Arrows out pose -->
+  <line x1="287" y1="140" x2="320" y2="120" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+  <line x1="287" y1="140" x2="320" y2="165" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+
+  <!-- Outputs -->
+  <rect x="322" y="45" width="120" height="45" rx="7" fill="#1e1808" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="382" y="66" fill="#f5a623" font-size="11" text-anchor="middle" font-weight="600">depth</text>
+  <text x="382" y="82" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 1, H, W) mm</text>
+
+  <rect x="322" y="100" width="120" height="45" rx="7" fill="#1e1808" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="382" y="121" fill="#c792ea" font-size="11" text-anchor="middle" font-weight="600">poses</text>
+  <text x="382" y="137" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 6+3×3=15)</text>
+
+  <rect x="322" y="155" width="120" height="45" rx="7" fill="#1e1808" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="382" y="176" fill="#3fda82" font-size="11" text-anchor="middle" font-weight="600">masks</text>
+  <text x="382" y="192" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 4, H, W) softmax</text>
+
+  <!-- Flow computation -->
+  <line x1="442" y1="122" x2="475" y2="155" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+  <line x1="442" y1="177" x2="475" y2="165" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+  <line x1="442" y1="67" x2="475" y2="100" stroke="#5b6af7" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#a4)"/>
+
+  <rect x="477" y="100" width="130" height="80" rx="7" fill="#131830" stroke="#5b6af7" stroke-width="1.5"/>
+  <text x="542" y="123" fill="#5b6af7" font-size="11" text-anchor="middle" font-weight="600">compute_flow()</text>
+  <text x="542" y="138" fill="#7a81a8" font-size="10" text-anchor="middle">Jacobienne caméra</text>
+  <text x="542" y="152" fill="#7a81a8" font-size="10" text-anchor="middle">A(x,y) * p_pixel</text>
+  <text x="542" y="166" fill="#7a81a8" font-size="10" text-anchor="middle">Éq. 1 papier EV-IMO</text>
+
+  <line x1="607" y1="140" x2="640" y2="140" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a4)"/>
+  <rect x="642" y="115" width="50" height="50" rx="7" fill="#1e1808" stroke="#f05c5c" stroke-width="1.5"/>
+  <text x="667" y="138" fill="#f05c5c" font-size="10" text-anchor="middle" font-weight="600">flow</text>
+  <text x="667" y="152" fill="#7a81a8" font-size="9" text-anchor="middle">(B,2,H,W)</text>
+
+  <!-- Loss annotations -->
+  <rect x="10" y="240" width="680" height="110" rx="7" fill="#22263a" stroke="#2e3249" stroke-width="1"/>
+  <text x="350" y="263" fill="#d4d8f0" font-size="12" text-anchor="middle" font-weight="600">Loss EV-IMO = L_warp + w_depth × L_depth + w_mask × L_mask</text>
+
+  <rect x="40" y="278" width="180" height="58" rx="5" fill="#1a1d27" stroke="#3fda82" stroke-width="1"/>
+  <text x="130" y="298" fill="#3fda82" font-size="11" text-anchor="middle" font-weight="600">WarpLoss (auto-supervisé)</text>
+  <text x="130" y="312" fill="#7a81a8" font-size="10" text-anchor="middle">|warp(slice_k, flow) − slice_c|</text>
+  <text x="130" y="326" fill="#7a81a8" font-size="10" text-anchor="middle">k ∈ {−2,−1,+1,+2}</text>
+
+  <rect x="260" y="278" width="180" height="58" rx="5" fill="#1a1d27" stroke="#f5a623" stroke-width="1"/>
+  <text x="350" y="298" fill="#f5a623" font-size="11" text-anchor="middle" font-weight="600">DepthLoss (supervisé)</text>
+  <text x="350" y="312" fill="#7a81a8" font-size="10" text-anchor="middle">max(d_gt/d, d/d_gt) + |d−d_gt|/d_gt</text>
+  <text x="350" y="326" fill="#7a81a8" font-size="10" text-anchor="middle">pixels non-NaN seulement</text>
+
+  <rect x="480" y="278" width="180" height="58" rx="5" fill="#1a1d27" stroke="#f05c5c" stroke-width="1"/>
+  <text x="570" y="298" fill="#f05c5c" font-size="11" text-anchor="middle" font-weight="600">MaskLoss (semi-supervisé)</text>
+  <text x="570" y="312" fill="#7a81a8" font-size="10" text-anchor="middle">BCE(bg_proba, bg_target)</text>
+  <text x="570" y="326" fill="#7a81a8" font-size="10" text-anchor="middle">+ λ × gradient spatial</text>
+</svg>
+<div class="diagram-caption">Vue d'ensemble du forward pass EV-IMO. Les flèches en pointillés indiquent une connexion indirecte (depth n'entre pas dans compute_flow).</div>
+</div>
+
+<!-- ━━ SECTION : ECN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="ecn">11. ECN Backbone (Evenly Cascading Network)</h2>
+
+<p>L'ECN est le réseau de base partagé par tous les sous-modules EV-IMO. C'est un encoder-decoder de type <strong>U-Net</strong> avec une croissance additive des canaux.</p>
+
+<h3>Schedule des canaux</h3>
+<p>Pour la variante <code>baseline</code> (init=32, growth=32, n_stages=4) :</p>
+
+<!-- SVG : ECN architecture -->
+<div class="diagram-wrap">
+<svg width="660" height="300" viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a5" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5 Z" fill="#5b6af7"/>
+    </marker>
+    <marker id="a5g" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5 Z" fill="#3fda82"/>
+    </marker>
+  </defs>
+  <text x="330" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">ECNBackbone — Encoder-Decoder U-Net (baseline, n_stages=4)</text>
+
+  <!-- Input -->
+  <rect x="10" y="45" width="70" height="40" rx="5" fill="#22263a" stroke="#5b6af7" stroke-width="1.5"/>
+  <text x="45" y="62" fill="#d4d8f0" font-size="10" text-anchor="middle">input_proj</text>
+  <text x="45" y="78" fill="#ffcb6b" font-size="10" text-anchor="middle">3→32ch</text>
+
+  <!-- Encoder stages going down-right -->
+  <line x1="80" y1="65" x2="110" y2="65" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a5)"/>
+  <rect x="112" y="45" width="75" height="40" rx="5" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="150" y="62" fill="#3fda82" font-size="10" text-anchor="middle">Encoder 0</text>
+  <text x="150" y="78" fill="#ffcb6b" font-size="10" text-anchor="middle">32→64ch ÷2</text>
+
+  <line x1="187" y1="65" x2="217" y2="65" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a5)"/>
+  <rect x="219" y="45" width="75" height="40" rx="5" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="256" y="62" fill="#3fda82" font-size="10" text-anchor="middle">Encoder 1</text>
+  <text x="256" y="78" fill="#ffcb6b" font-size="10" text-anchor="middle">64→96ch ÷2</text>
+
+  <line x1="294" y1="65" x2="324" y2="65" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a5)"/>
+  <rect x="326" y="45" width="75" height="40" rx="5" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="363" y="62" fill="#3fda82" font-size="10" text-anchor="middle">Encoder 2</text>
+  <text x="363" y="78" fill="#ffcb6b" font-size="10" text-anchor="middle">96→128ch ÷2</text>
+
+  <line x1="401" y1="65" x2="431" y2="65" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a5)"/>
+  <rect x="433" y="45" width="80" height="40" rx="5" fill="#131830" stroke="#5b6af7" stroke-width="2"/>
+  <text x="473" y="62" fill="#5b6af7" font-size="10" text-anchor="middle" font-weight="600">Bottleneck</text>
+  <text x="473" y="78" fill="#ffcb6b" font-size="10" text-anchor="middle">128→160ch ÷2</text>
+
+  <!-- Skip connections (dashed curves) -->
+  <path d="M45 85 Q45 155 95 165" stroke="#7a81a8" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
+  <path d="M150 85 Q150 155 205 165" stroke="#7a81a8" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
+  <path d="M256 85 Q256 155 315 165" stroke="#7a81a8" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
+  <path d="M363 85 Q363 155 420 165" stroke="#7a81a8" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
+
+  <text x="200" y="140" fill="#7a81a8" font-size="10" text-anchor="middle">skip connections (concat + proj 1×1)</text>
+
+  <!-- Decoder stages -->
+  <line x1="473" y1="105" x2="473" y2="165" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a5)"/>
+
+  <rect x="433" y="167" width="80" height="40" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="473" y="184" fill="#c792ea" font-size="10" text-anchor="middle">Decoder 0</text>
+  <text x="473" y="200" fill="#ffcb6b" font-size="10" text-anchor="middle">160+128→128 ×2</text>
+
+  <line x1="433" y1="187" x2="403" y2="187" stroke="#3fda82" stroke-width="1.5" marker-end="url(#a5g)"/>
+  <rect x="326" y="167" width="75" height="40" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="363" y="184" fill="#c792ea" font-size="10" text-anchor="middle">Decoder 1</text>
+  <text x="363" y="200" fill="#ffcb6b" font-size="10" text-anchor="middle">128+96→96 ×2</text>
+
+  <line x1="326" y1="187" x2="296" y2="187" stroke="#3fda82" stroke-width="1.5" marker-end="url(#a5g)"/>
+  <rect x="219" y="167" width="75" height="40" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="256" y="184" fill="#c792ea" font-size="10" text-anchor="middle">Decoder 2</text>
+  <text x="256" y="200" fill="#ffcb6b" font-size="10" text-anchor="middle">96+64→64 ×2</text>
+
+  <line x1="219" y1="187" x2="189" y2="187" stroke="#3fda82" stroke-width="1.5" marker-end="url(#a5g)"/>
+  <rect x="112" y="167" width="75" height="40" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="150" y="184" fill="#c792ea" font-size="10" text-anchor="middle">Decoder 3</text>
+  <text x="150" y="200" fill="#ffcb6b" font-size="10" text-anchor="middle">64+32→32 ×2</text>
+
+  <line x1="112" y1="187" x2="82" y2="187" stroke="#3fda82" stroke-width="1.5" marker-end="url(#a5g)"/>
+  <rect x="10" y="167" width="70" height="40" rx="5" fill="#1e1808" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="45" y="184" fill="#f5a623" font-size="10" text-anchor="middle">output_head</text>
+  <text x="45" y="200" fill="#ffcb6b" font-size="10" text-anchor="middle">32→out_ch</text>
+
+  <!-- Resolution annotations -->
+  <text x="330" y="250" fill="#7a81a8" font-size="11" text-anchor="middle">Résolution : H×W → H/2 → H/4 → H/8 → H/16 (bottleneck) → ... → H×W</text>
+  <text x="330" y="270" fill="#7a81a8" font-size="11" text-anchor="middle">Variante baseline: ~1.2M params / backbone  |  Variante shallow (init=8, stages=2): ~34k params</text>
+</svg>
+<div class="diagram-caption">Architecture ECN Backbone. Les flèches grises en pointillés = skip connections. Chaque étage encodeur divise la résolution par 2 et augmente les canaux.</div>
+</div>
+
+<table>
+  <tr><th>Variante</th><th>init_channels</th><th>growth</th><th>n_stages</th><th>Params approx.</th></tr>
+  <tr><td><code>baseline</code></td><td>32</td><td>32</td><td>4</td><td>~1.2M / backbone</td></tr>
+  <tr><td><code>shallow</code></td><td>8</td><td>8</td><td>2</td><td>~34k / backbone</td></tr>
+</table>
+
+<!-- ━━ SECTION : DEPTH NET ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="depth-net">12. Depth Network</h2>
+
+<p>La <code>DepthNetwork</code> (<code>ms_model/models/evimo/depth_net.py</code>) prend la <strong>slice centrale</strong> des 5 slices contexte et prédit une carte de profondeur dense.</p>
+
+<pre><code><span class="c"># DepthNetwork.forward</span>
+depth_raw = ECNBackbone(in_channels=<span class="num">3</span>, out_channels=<span class="num">1</span>)(slice_centre)  <span class="c"># (B, 1, H, W)</span>
+depth = F.softplus(depth_raw)   <span class="c"># → valeurs positives (mm)</span></code></pre>
+
+<div class="info-box">
+  <strong>Softplus</strong> comme activation finale : <span class="math">softplus(x) = log(1 + exp(x))</span> — garantit une profondeur strictement positive, avec un gradient non nul même pour x &lt; 0 (contrairement à ReLU).
+</div>
+
+<!-- ━━ SECTION : POSE NET ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="pose-net">13. Pose Network</h2>
+
+<p>La <code>PoseNetwork</code> a une architecture à <strong>deux têtes</strong> qui partagent le même encodeur ECN :</p>
+
+<!-- SVG : PoseNetwork -->
+<div class="diagram-wrap">
+<svg width="640" height="260" viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a6" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+  </defs>
+  <text x="320" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">PoseNetwork — Dual-head architecture</text>
+
+  <!-- Input -->
+  <rect x="10" y="50" width="115" height="60" rx="7" fill="#22263a" stroke="#5b6af7" stroke-width="1.5"/>
+  <text x="67" y="72" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">5 slices concat</text>
+  <text x="67" y="88" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 15, H, W)</text>
+  <text x="67" y="104" fill="#7a81a8" font-size="10" text-anchor="middle">5 × 3 canaux</text>
+
+  <line x1="125" y1="80" x2="150" y2="80" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a6)"/>
+
+  <!-- ECN shared -->
+  <rect x="152" y="40" width="130" height="80" rx="7" fill="#131830" stroke="#5b6af7" stroke-width="2"/>
+  <text x="217" y="70" fill="#5b6af7" font-size="12" text-anchor="middle" font-weight="600">ECNBackbone</text>
+  <text x="217" y="88" fill="#7a81a8" font-size="10" text-anchor="middle">encode(x)</text>
+  <text x="217" y="102" fill="#7a81a8" font-size="10" text-anchor="middle">→ bottleneck</text>
+  <text x="217" y="116" fill="#7a81a8" font-size="10" text-anchor="middle">→ enc_feats</text>
+
+  <!-- Fork -->
+  <line x1="282" y1="70" x2="320" y2="50" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a6)"/>
+  <line x1="282" y1="90" x2="320" y2="130" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a6)"/>
+
+  <!-- Spatial decoder head -->
+  <rect x="322" y="30" width="150" height="55" rx="7" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="397" y="52" fill="#3fda82" font-size="11" text-anchor="middle" font-weight="600">Spatial Decoder</text>
+  <text x="397" y="68" fill="#7a81a8" font-size="10" text-anchor="middle">decode(bottleneck, feats)</text>
+  <text x="397" y="78" fill="#7a81a8" font-size="9" text-anchor="middle">→ softmax → (B, C+1, H, W)</text>
+
+  <line x1="472" y1="57" x2="510" y2="57" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a6)"/>
+  <rect x="512" y="38" width="110" height="42" rx="5" fill="#1e1808" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="567" y="56" fill="#3fda82" font-size="11" text-anchor="middle" font-weight="600">masks</text>
+  <text x="567" y="72" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 4, H, W)</text>
+
+  <!-- Global head -->
+  <rect x="322" y="110" width="150" height="65" rx="7" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="397" y="130" fill="#c792ea" font-size="11" text-anchor="middle" font-weight="600">Global Avg Pool</text>
+  <text x="397" y="146" fill="#7a81a8" font-size="10" text-anchor="middle">bottleneck.mean(H,W)</text>
+  <text x="397" y="158" fill="#7a81a8" font-size="10" text-anchor="middle">→ MLP → (B, 6+3C)</text>
+  <text x="397" y="170" fill="#7a81a8" font-size="9" text-anchor="middle">Linear(btl→btl/2)→ReLU→Linear</text>
+
+  <line x1="472" y1="142" x2="510" y2="142" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a6)"/>
+  <rect x="512" y="121" width="110" height="42" rx="5" fill="#1e1808" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="567" y="140" fill="#c792ea" font-size="11" text-anchor="middle" font-weight="600">poses</text>
+  <text x="567" y="156" fill="#7a81a8" font-size="10" text-anchor="middle">(B, 15)</text>
+
+  <!-- Poses decomposition -->
+  <text x="320" y="215" fill="#d4d8f0" font-size="12" text-anchor="middle" font-weight="600">poses = [vx, vy, vz, ωx, ωy, ωz | t1x, t1y, t1z | t2x, t2y, t2z | t3x, t3y, t3z]</text>
+  <text x="320" y="235" fill="#7a81a8" font-size="11" text-anchor="middle">←———————— ego-motion 6-DoF ————————→←——————— 3 translations objet (×3 obj) ————————→</text>
+</svg>
+<div class="diagram-caption">L'encodeur ECN est partagé. Le décodeur spatial produit les masques de segmentation ; le global avg-pool + MLP produit les poses.</div>
+</div>
+
+<!-- ━━ SECTION : FLOW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="flow">14. Calcul du Flux Optique</h2>
+
+<p>Le flux n'est pas <em>appris</em> par un réseau — il est <strong>calculé de façon différentiable</strong> à partir des poses et masques prédits, via le modèle de projection caméra (Équation 1 du papier EV-IMO).</p>
+
+<h3>Pose par pixel — modèle compositionnel</h3>
+
+<p>Chaque pixel <code>(u, v)</code> a un mouvement qui est la somme pondérée de l'ego-motion et des mouvements d'objets :</p>
+
+<div class="card">
+  <p style="font-family: monospace; font-size: 14px; color: #ffcb6b; margin: 0;">
+    p_pixel = p_ego + Σ<sub>j</sub> m<sub>ij</sub> · [t<sub>j</sub> ; 0 0 0]
+  </p>
+  <p style="font-size: 13px; color: var(--muted); margin: 8px 0 0;">
+    <code>m_ij</code> = poids du mask softmax pour le pixel i et l'objet j<br>
+    <code>t_j</code> = translation 3D de l'objet j (pas de rotation — simplification EV-IMO)<br>
+    <code>p_ego</code> = [vx, vy, vz, ωx, ωy, ωz] commun à tous les pixels
+  </p>
+</div>
+
+<h3>Équation de projection (Éq. 1 EV-IMO)</h3>
+
+<p>Une fois le mouvement 6-DoF par pixel connu, le flux 2D est calculé via les coordonnées normalisées :</p>
+
+<pre><code><span class="c"># Coordonnées normalisées (déprojection via intrinsèques K)</span>
+xn = (col - cx) / fx
+yn = (row - cy) / fy
+
+<span class="c"># Flux normalisé (Éq. 1 papier)</span>
+u_n = 0.5 * (-vx + xn*vz) + (xn*yn*wx - (1+xn²)*wy + yn*wz)
+v_n = 0.5 * (-vy + yn*vz) + ((1+yn²)*wx - xn*yn*wy - xn*wz)
+
+<span class="c"># Flux en pixels</span>
+flow = stack([fx * u_n,  fy * v_n])   <span class="c"># (B, 2, H, W)</span></code></pre>
+
+<div class="info-box">
+  Cette formule est la dérivée partielle de la projection perspectivale par rapport au temps, linéarisée autour du mouvement de la caméra. Elle transforme un mouvement 3D rigide en déplacement 2D dans l'image.
+</div>
+
+<!-- ━━ SECTION : EVIMO LOSS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="evimo-loss">15. Losses EV-IMO</h2>
+
+<h3>WarpLoss — auto-supervisé</h3>
+
+<p>Mesure la <strong>netteté des événements</strong> après déformation par le flux prédit. Si le flux est correct, les événements des slices voisines, ramenés au temps central, doivent ressembler aux événements du centre.</p>
+
+<!-- SVG : warp loss -->
+<div class="diagram-wrap">
+<svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a7" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+  </defs>
+  <text x="310" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">WarpLoss — Inverse Warping des slices voisines</text>
+
+  <!-- Slices -->
+  <rect x="10" y="50" width="60" height="60" rx="4" fill="#22263a" stroke="#f05c5c" stroke-width="1.5"/>
+  <text x="40" y="78" fill="#f05c5c" font-size="10" text-anchor="middle">slice</text>
+  <text x="40" y="92" fill="#7a81a8" font-size="9" text-anchor="middle">t-2</text>
+
+  <rect x="90" y="50" width="60" height="60" rx="4" fill="#22263a" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="120" y="78" fill="#f5a623" font-size="10" text-anchor="middle">slice</text>
+  <text x="120" y="92" fill="#7a81a8" font-size="9" text-anchor="middle">t-1</text>
+
+  <rect x="175" y="40" width="70" height="80" rx="4" fill="#131830" stroke="#5b6af7" stroke-width="2"/>
+  <text x="210" y="77" fill="#5b6af7" font-size="11" text-anchor="middle" font-weight="600">slice</text>
+  <text x="210" y="92" fill="#5b6af7" font-size="11" text-anchor="middle" font-weight="600">centre</text>
+  <text x="210" y="106" fill="#7a81a8" font-size="9" text-anchor="middle">t = t_c</text>
+
+  <rect x="265" y="50" width="60" height="60" rx="4" fill="#22263a" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="295" y="78" fill="#f5a623" font-size="10" text-anchor="middle">slice</text>
+  <text x="295" y="92" fill="#7a81a8" font-size="9" text-anchor="middle">t+1</text>
+
+  <rect x="345" y="50" width="60" height="60" rx="4" fill="#22263a" stroke="#f05c5c" stroke-width="1.5"/>
+  <text x="375" y="78" fill="#f05c5c" font-size="10" text-anchor="middle">slice</text>
+  <text x="375" y="92" fill="#7a81a8" font-size="9" text-anchor="middle">t+2</text>
+
+  <!-- Warp arrows -->
+  <path d="M40 110 Q90 160 160 120" stroke="#3fda82" stroke-width="1.5" fill="none" marker-end="url(#a7)"/>
+  <path d="M120 110 Q145 150 165 125" stroke="#3fda82" stroke-width="1.5" fill="none" marker-end="url(#a7)"/>
+  <path d="M295 110 Q270 150 255 125" stroke="#3fda82" stroke-width="1.5" fill="none" marker-end="url(#a7)"/>
+  <path d="M375 110 Q315 160 260 120" stroke="#3fda82" stroke-width="1.5" fill="none" marker-end="url(#a7)"/>
+  <text x="210" y="165" fill="#3fda82" font-size="10" text-anchor="middle">warp(slice_k, ±flow) → vers t_c</text>
+
+  <!-- Loss computation -->
+  <line x1="430" y1="80" x2="455" y2="80" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a7)"/>
+  <text x="430" y="72" fill="#7a81a8" font-size="9">flow prédit</text>
+  <rect x="457" y="55" width="155" height="60" rx="5" fill="#22263a" stroke="#f05c5c" stroke-width="1.5"/>
+  <text x="534" y="78" fill="#f05c5c" font-size="11" text-anchor="middle" font-weight="600">L_warp</text>
+  <text x="534" y="93" fill="#7a81a8" font-size="10" text-anchor="middle">mean |warped − slice_c|</text>
+  <text x="534" y="107" fill="#7a81a8" font-size="10" text-anchor="middle">sur k ∈ {−2,−1,+1,+2}</text>
+</svg>
+<div class="diagram-caption">Les 4 slices voisines sont inversement déformées vers le temps central. Un flux correct les rend semblables à la slice centrale.</div>
+</div>
+
+<h3>DepthLoss — supervisé sparse</h3>
+
+<pre><code><span class="c"># Pixels valides uniquement (GT depth != NaN)</span>
+ratio    = max(d_gt/d_pred, d_pred/d_gt)   <span class="c"># ratio symétrique ≥ 1</span>
+abs_rel  = |d_pred - d_gt| / d_gt          <span class="c"># erreur relative</span>
+L_main   = mean(ratio + abs_rel)           <span class="c"># = 1.0 si pred == gt</span>
+L_smooth = lambda * mean(|Laplacien(depth)|)  <span class="c"># régularisation 2e ordre</span></code></pre>
+
+<h3>MaskLoss — semi-supervisé</h3>
+
+<div class="warn-box">
+  <strong>Piège critique :</strong> Une MaskLoss qui ne supervise que les pixels de fond peut mener à une solution triviale "tout-fond" avec loss = 0. La correction est de superviser <em>tous</em> les pixels — en forçant bg_channel ≈ 1 au fond ET bg_channel ≈ 0 sur les objets.
+</div>
+
+<pre><code><span class="c"># Bonne formulation (v2) :</span>
+bg_proba  = masks[:, <span class="num">0</span>]                      <span class="c"># prob. fond</span>
+bg_target = (mask_gt == <span class="num">0</span>).float()          <span class="c"># 1 aux pixels fond, 0 aux objets</span>
+bce = F.binary_cross_entropy(bg_proba, bg_target)  <span class="c"># pénalise TOUT</span>
+
+<span class="c"># + régularisation spatiale</span>
+smooth = mean(|Δy masks|) + mean(|Δx masks|)</span>
+L_mask = lambda_bce * bce + lambda_smooth * smooth</code></pre>
+
+<hr>
+
+<!-- ━━ SECTION : TRAINING ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="training">16. Pipeline d'entraînement (train.py)</h2>
+
+<p>Le fichier <code>ms_model/training/train.py</code> gère les deux pipelines via une branche <code>is_evimo</code> :</p>
+
+<!-- SVG : training pipeline -->
+<div class="diagram-wrap">
+<svg width="680" height="310" viewBox="0 0 680 310" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a8" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6af7"/>
+    </marker>
+  </defs>
+  <text x="340" y="22" fill="#5b6af7" font-size="13" font-weight="bold" text-anchor="middle">train.py — Boucle d'entraînement</text>
+
+  <!-- Config -->
+  <rect x="10" y="45" width="95" height="50" rx="5" fill="#22263a" stroke="#5b6af7" stroke-width="1.5"/>
+  <text x="57" y="68" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">config.yaml</text>
+  <text x="57" y="84" fill="#7a81a8" font-size="10" text-anchor="middle">data/model/train</text>
+
+  <line x1="105" y1="70" x2="125" y2="70" stroke="#5b6af7" stroke-width="1.5" marker-end="url(#a8)"/>
+
+  <!-- Branch -->
+  <rect x="127" y="50" width="120" height="40" rx="5" fill="#131830" stroke="#5b6af7" stroke-width="2"/>
+  <text x="187" y="68" fill="#5b6af7" font-size="11" text-anchor="middle" font-weight="600">model_name ==</text>
+  <text x="187" y="82" fill="#5b6af7" font-size="11" text-anchor="middle" font-weight="600">"evimo" ?</text>
+
+  <!-- Yes / No forks -->
+  <line x1="247" y1="60" x2="275" y2="40" stroke="#3fda82" stroke-width="1.5" marker-end="url(#a8)"/>
+  <text x="258" y="38" fill="#3fda82" font-size="10">Oui</text>
+  <line x1="247" y1="80" x2="275" y2="100" stroke="#f05c5c" stroke-width="1.5" marker-end="url(#a8)"/>
+  <text x="258" y="100" fill="#f05c5c" font-size="10">Non</text>
+
+  <!-- EV-IMO path -->
+  <rect x="277" y="20" width="130" height="45" rx="5" fill="#1a3d2b" stroke="#3fda82" stroke-width="1.5"/>
+  <text x="342" y="40" fill="#3fda82" font-size="10" text-anchor="middle" font-weight="600">EvimoSliceDataset</text>
+  <text x="342" y="58" fill="#7a81a8" font-size="9" text-anchor="middle">+ build_model("evimo")</text>
+
+  <!-- ConvLSTM path -->
+  <rect x="277" y="85" width="130" height="45" rx="5" fill="#2d1a4a" stroke="#c792ea" stroke-width="1.5"/>
+  <text x="342" y="105" fill="#c792ea" font-size="10" text-anchor="middle" font-weight="600">EvimoSegDataset</text>
+  <text x="342" y="121" fill="#7a81a8" font-size="9" text-anchor="middle">+ build_model("convlstm")</text>
+
+  <!-- Rejoin -->
+  <line x1="407" y1="42" x2="440" y2="72" stroke="#3fda82" stroke-width="1.5" marker-end="url(#a8)"/>
+  <line x1="407" y1="107" x2="440" y2="82" stroke="#c792ea" stroke-width="1.5" marker-end="url(#a8)"/>
+
+  <!-- Training loop -->
+  <rect x="442" y="55" width="220" height="80" rx="7" fill="#22263a" stroke="#5b6af7" stroke-width="1.5"/>
+  <text x="552" y="78" fill="#d4d8f0" font-size="11" text-anchor="middle" font-weight="600">for epoch in range(N):</text>
+  <text x="552" y="94" fill="#7a81a8" font-size="10" text-anchor="middle">run_epoch_[evimo](train_loader)</text>
+  <text x="552" y="109" fill="#7a81a8" font-size="10" text-anchor="middle">run_epoch_[evimo](val_loader)</text>
+  <text x="552" y="124" fill="#7a81a8" font-size="10" text-anchor="middle">save best.pt + last.pt + wandb.log</text>
+
+  <!-- Checkpoints + WandB -->
+  <rect x="10" y="185" width="650" height="105" rx="7" fill="#22263a" stroke="#2e3249" stroke-width="1"/>
+
+  <rect x="25" y="200" width="185" height="75" rx="5" fill="#1a1d27" stroke="#f5a623" stroke-width="1"/>
+  <text x="117" y="222" fill="#f5a623" font-size="11" text-anchor="middle" font-weight="600">Checkpoints</text>
+  <text x="117" y="238" fill="#7a81a8" font-size="10" text-anchor="middle">checkpoints/{run_name}/</text>
+  <text x="117" y="252" fill="#7a81a8" font-size="10" text-anchor="middle">best.pt  — meilleur val_loss</text>
+  <text x="117" y="266" fill="#7a81a8" font-size="10" text-anchor="middle">last.pt  — resume possible</text>
+
+  <rect x="230" y="200" width="200" height="75" rx="5" fill="#1a1d27" stroke="#5b6af7" stroke-width="1"/>
+  <text x="330" y="222" fill="#5b6af7" font-size="11" text-anchor="middle" font-weight="600">WandB logs</text>
+  <text x="330" y="238" fill="#7a81a8" font-size="10" text-anchor="middle">epoch, train/loss, val/loss</text>
+  <text x="330" y="252" fill="#7a81a8" font-size="10" text-anchor="middle">train/iou, val/iou</text>
+  <text x="330" y="266" fill="#7a81a8" font-size="10" text-anchor="middle">+ warp/depth/mask (EV-IMO)</text>
+
+  <rect x="450" y="200" width="195" height="75" rx="5" fill="#1a1d27" stroke="#3fda82" stroke-width="1"/>
+  <text x="547" y="222" fill="#3fda82" font-size="11" text-anchor="middle" font-weight="600">Scheduler (EV-IMO)</text>
+  <text x="547" y="238" fill="#7a81a8" font-size="10" text-anchor="middle">CosineAnnealingLR</text>
+  <text x="547" y="252" fill="#7a81a8" font-size="10" text-anchor="middle">T_max = epochs</text>
+  <text x="547" y="266" fill="#7a81a8" font-size="10" text-anchor="middle">lr : 1e-2 → ~0</text>
+</svg>
+<div class="diagram-caption">Le même train.py gère les deux pipelines via la branche is_evimo. Le resume automatique (last.pt) fonctionne pour les deux.</div>
+</div>
+
+<h3>IoU comme métrique de validation</h3>
+
+<p>Pour les deux modèles, l'IoU foreground est calculé :</p>
+
+<pre><code><span class="c"># ConvLSTM</span>
+pred = (logits > <span class="num">0</span>).float()    <span class="c"># seuil sur logit brut</span>
+gt   = (mask > <span class="num">0.5</span>).float()
+
+<span class="c"># EV-IMO</span>
+fg_pred = (masks[:, <span class="num">1</span>:].sum(<span class="num">1</span>) > masks[:, <span class="num">0</span>]).float()  <span class="c"># arg max ≠ fond</span>
+fg_gt   = (mask_gt > <span class="num">0</span>).float()
+
+IoU = intersection / union.clamp(min=<span class="num">1</span>)</code></pre>
+
+<!-- ━━ SECTION : CONFIGS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<h2 id="configs">17. Configurations disponibles</h2>
+
+<table>
+  <tr>
+    <th>Fichier</th>
+    <th>Modèle</th>
+    <th>Epochs</th>
+    <th>Spécificité</th>
+  </tr>
+  <tr>
+    <td><code>configs/config_lstm_yogya.yaml</code></td>
+    <td>ConvLSTM v2</td>
+    <td>variable</td>
+    <td>Dataset Yogya, patch_size=4</td>
+  </tr>
+  <tr>
+    <td><code>configs/evimo_smoke.yaml</code></td>
+    <td>EV-IMO shallow</td>
+    <td>2</td>
+    <td>Smoke test rapide, 1 séquence</td>
+  </tr>
+  <tr>
+    <td><code>configs/evimo_model.yaml</code></td>
+    <td>EV-IMO baseline</td>
+    <td>50</td>
+    <td>Run standard, w_depth=1.0</td>
+  </tr>
+  <tr>
+    <td><code>configs/evimo_model_long.yaml</code></td>
+    <td>EV-IMO baseline</td>
+    <td>100</td>
+    <td>Run long</td>
+  </tr>
+  <tr>
+    <td><code>configs/evimo_model_lowdepth.yaml</code></td>
+    <td>EV-IMO baseline</td>
+    <td>50</td>
+    <td>w_depth=0.1 (favorise warp+mask)</td>
+  </tr>
+</table>
+
+<h3>Structure d'un YAML de config EV-IMO</h3>
+
+<pre><code>data:
+  root: ../datasets/EV-IMO/eval
+  train_sequences: [box/npz/seq_00.npz, ...]
+  val_sequences:   [tabletop/npz/seq_00.npz]
+  slice_dt: <span class="num">0.025</span>          <span class="c"># durée d'une slice (s)</span>
+  n_slices_context: <span class="num">5</span>      <span class="c"># nombre de slices en entrée</span>
+  max_objects: <span class="num">3</span>           <span class="c"># C = nombre max d'objets</span>
+
+model:
+  name: evimo
+  ecn_variant: baseline    <span class="c"># "baseline" ou "shallow"</span>
+  max_objects: <span class="num">3</span>
+
+training:
+  epochs: <span class="num">50</span>
+  batch_size: <span class="num">8</span>
+  lr: <span class="num">1.0e-2</span>
+  evimo_loss_kwargs:
+    w_depth: <span class="num">1.0</span>
+    w_mask: <span class="num">0.5</span>
+    warp_loss_kwargs:   {use_fine_loss: <span class="s">false</span>}
+    depth_loss_kwargs:  {lambda_smooth: <span class="num">0.1</span>}
+    mask_loss_kwargs:   {lambda_smooth: <span class="num">0.1</span>, lambda_bce: <span class="num">1.0</span>}
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique</code></pre>
+
+<hr>
+
+<!-- ━━ FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div class="card" style="margin-top: 40px; border-color: var(--accent)">
+  <h4>Références</h4>
+  <ul style="font-size: 13.5px;">
+    <li>Mitrokhin et al., <em>"EV-IMO: Motion Segmentation Dataset and Learning Pipeline for Event Cameras"</em>, IROS 2019 — arxiv 1903.07520</li>
+    <li>Zhu et al., <em>"Unsupervised Event-based Learning of Optical Flow, Depth, and Egomotion"</em>, CVPR 2019 (ECN backbone)</li>
+    <li>Klenk et al., <em>"Deep Event Visual Odometry"</em> (DEVO), TUM 2023 — source du code voxel grid</li>
+    <li>Lin et al., <em>"Focal Loss for Dense Object Detection"</em>, ICCV 2017</li>
+  </ul>
+</div>
+
+<p style="color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center;">
+  MS_Model — Généré automatiquement · EVIMO 260×346 (DAVIS 240C) · PyTorch 1.12.1
+</p>
+
+</main>
+</body>
+</html>
