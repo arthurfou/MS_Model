@@ -122,10 +122,12 @@ class DepthLoss(nn.Module):
 
 
 class MaskLoss(nn.Module):
-    """Motion mask semi-supervised loss (EV-IMO paper Section III-E.2).
+    """Motion mask supervised loss.
 
     Two terms:
-      BCE  — background pixels (mask_gt == 0) should have mixture weight 0 ≈ 1
+      BCE  — full binary cross-entropy on the background channel:
+             bg channel should be 1 at background pixels, 0 at object pixels.
+             This forces the model to actively detect objects (not just ignore them).
       Smooth — L1 spatial gradient of all mixture weights
     """
 
@@ -139,13 +141,11 @@ class MaskLoss(nn.Module):
         masks_pred: torch.Tensor,   # (B, C+1, H, W) softmax probabilities
         mask_gt: torch.Tensor,      # (B, H, W) int64, 0 = background
     ) -> torch.Tensor:
-        bg_pixel = mask_gt == 0                              # (B, H, W)
         bg_proba = masks_pred[:, 0]                          # (B, H, W)
+        bg_target = (mask_gt == 0).float()                   # 1 at bg, 0 at obj pixels
 
-        if bg_pixel.any():
-            bce = -torch.log(bg_proba[bg_pixel].clamp(min=1e-7)).mean()
-        else:
-            bce = masks_pred.sum() * 0.0
+        # Full BCE: supervises both background AND object pixels
+        bce = F.binary_cross_entropy(bg_proba.clamp(1e-7, 1 - 1e-7), bg_target)
 
         dy = (masks_pred[:, :, 1:, :] - masks_pred[:, :, :-1, :]).abs().mean()
         dx = (masks_pred[:, :, :, 1:] - masks_pred[:, :, :, :-1]).abs().mean()

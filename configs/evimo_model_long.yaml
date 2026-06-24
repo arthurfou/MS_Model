@@ -1,0 +1,49 @@
+data:
+  root: ../datasets/EV-IMO/eval
+  train_sequences:
+    - box/npz/seq_00.npz
+    - box/npz/seq_01.npz
+    - box/npz/seq_02.npz
+    - box/npz/seq_03.npz
+    - box/npz/seq_04.npz
+    - box/npz/seq_05.npz
+    - fast/npz/seq_00.npz
+    - fast/npz/seq_01.npz
+    - wall/npz/seq_00.npz
+    - wall/npz/seq_01.npz
+  val_sequences:
+    - tabletop/npz/seq_00.npz
+    - tabletop/npz/seq_01.npz
+  slice_dt: 0.025
+  n_slices_context: 5
+  max_objects: 3
+
+model:
+  name: evimo
+  max_objects: 3
+  H: 260
+  W: 346
+  n_context_slices: 5
+  ecn_variant: baseline
+
+training:
+  epochs: 100
+  batch_size: 8
+  lr: 1.0e-2
+  num_workers: 4
+  checkpoint_dir: checkpoints
+  evimo_loss_kwargs:
+    w_depth: 1.0
+    w_mask: 0.5
+    warp_loss_kwargs:
+      use_fine_loss: false
+    depth_loss_kwargs:
+      lambda_smooth: 0.1
+    mask_loss_kwargs:
+      lambda_smooth: 0.1
+      lambda_bce: 1.0
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: ""
