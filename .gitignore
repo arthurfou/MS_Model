@@ -16,12 +16,9 @@ env/
 *.hdf5
 *.pkl
 *.pickle
-*.pth
-*.pt
 *.mp4
 results/
 datasets/
-checkpoints/
 wandb/
 logs/
 
