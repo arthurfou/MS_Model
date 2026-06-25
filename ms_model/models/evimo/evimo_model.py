@@ -46,6 +46,7 @@ class EvimoModel(nn.Module):
         W: int = 346,
         n_context_slices: int = 5,
         ecn_variant: str = "baseline",
+        slice_dt: float = 0.025,
         **ignored_kwargs,
     ):
         super().__init__()
@@ -53,6 +54,7 @@ class EvimoModel(nn.Module):
         self.H, self.W = H, W
         self.n_ctx = n_context_slices
         self.half = n_context_slices // 2
+        self.slice_dt = slice_dt
 
         ecn = _ECN_VARIANTS[ecn_variant]
 
@@ -74,9 +76,10 @@ class EvimoModel(nn.Module):
 
     def compute_flow(
         self,
-        poses: torch.Tensor,   # (B, 6+3C)
-        masks: torch.Tensor,   # (B, C+1, H, W)
-        K: torch.Tensor,       # (B, 3, 3)
+        poses: torch.Tensor,            # (B, 6+3C)
+        masks: torch.Tensor,            # (B, C+1, H, W)
+        K: torch.Tensor,                # (B, 3, 3)
+        depth: torch.Tensor | None = None,  # (B, 1, H, W) in mm, optional
     ) -> torch.Tensor:
         """Compute pixel-space optical flow from pose and mixture masks.
 

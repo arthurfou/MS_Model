@@ -1,0 +1,50 @@
+data:
+  root: ../datasets/EV-IMO/eval
+  train_sequences:
+    - box/npz/seq_00.npz
+    - box/npz/seq_01.npz
+    - box/npz/seq_02.npz
+    - box/npz/seq_03.npz
+    - box/npz/seq_04.npz
+    - fast/npz/seq_00.npz
+    - fast/npz/seq_01.npz
+    - fast/npz/seq_02.npz
+    - floor/npz/seq_00.npz
+    - floor/npz/seq_01.npz
+    - table/npz/seq_00.npz
+    - table/npz/seq_01.npz
+    - table/npz/seq_02.npz
+    - wall/npz/seq_00.npz
+    - wall/npz/seq_01.npz
+  val_sequences:
+    - tabletop/npz/seq_00.npz
+    - tabletop/npz/seq_01.npz
+    - tabletop/npz/seq_02.npz
+    - tabletop/npz/seq_03.npz
+    - box/npz/seq_05.npz
+    - table/npz/seq_03.npz
+  seq_len: 16
+  nb_time_bins: 5
+  patch_size: 4
+  mask_thicken_radius: 3
+
+model:
+  name: convlstm_v4
+  hidden_dim: 96
+  num_groups: 8
+
+training:
+  epochs: 100
+  batch_size: 8
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  use_scheduler: true
+  loss: bce_dice
+  loss_pos_weight: 10.0
+  num_workers: 4
+  checkpoint_dir: checkpoints
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: ""

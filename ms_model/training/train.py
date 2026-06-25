@@ -185,7 +185,11 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
     if is_evimo:
         model = build_model(model_name, **model_cfg).to(device)
         loss_fn = EvimoLoss(**train_cfg.get("evimo_loss_kwargs", {}))
-        optimizer = torch.optim.Adam(model.parameters(), lr=train_cfg["lr"])
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=train_cfg["lr"],
+            weight_decay=train_cfg.get("weight_decay", 0.0),
+        )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=train_cfg["epochs"]
         )
@@ -196,8 +200,14 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
             patch_size=data_cfg["patch_size"],
             **model_cfg,
         ).to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=train_cfg["lr"])
-        scheduler = None
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=train_cfg["lr"],
+            weight_decay=train_cfg.get("weight_decay", 0.0),
+        )
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=train_cfg["epochs"]
+        ) if train_cfg.get("use_scheduler", False) else None
         loss_fn = build_loss(
             train_cfg.get("loss", "bce"),
             pos_weight=train_cfg.get("loss_pos_weight"),
@@ -207,12 +217,14 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
 
     start_epoch = 0
     best_val_loss = float("inf")
+    best_val_iou = 0.0
     wandb_run_id = None
     if resume_ckpt is not None:
         model.load_state_dict(resume_ckpt["model"])
         optimizer.load_state_dict(resume_ckpt["optimizer"])
         start_epoch = resume_ckpt["epoch"] + 1
         best_val_loss = resume_ckpt["best_val_loss"]
+        best_val_iou = resume_ckpt.get("best_val_iou", 0.0)
         wandb_run_id = resume_ckpt.get("wandb_run_id")
 
     run = wandb.init(
@@ -273,6 +285,8 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
                   f"val_loss={val_metrics['loss']:.4f} val_iou={val_metrics['iou']:.4f}", flush=True)
 
         val_loss = val_metrics["loss"]
+        val_iou = val_metrics["iou"]
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save({
@@ -280,11 +294,19 @@ def main(config_path: str, data_root_override: str = None, wandb_name_override: 
                 "config": config,
             }, checkpoint_dir / "best.pt")
 
+        if val_iou > best_val_iou:
+            best_val_iou = val_iou
+            torch.save({
+                "model": model.state_dict(),
+                "config": config,
+            }, checkpoint_dir / "best_iou.pt")
+
         torch.save({
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "epoch": epoch,
             "best_val_loss": best_val_loss,
+            "best_val_iou": best_val_iou,
             "wandb_run_id": run.id,
             "config": config,
         }, checkpoint_dir / "last.pt")
