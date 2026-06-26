@@ -110,6 +110,41 @@ model.eval()
 
 ---
 
+## Filtrer des events avec un modèle entraîné
+
+`scripts/filter_events.py` prend un checkpoint, un yaml de config et un fichier
+`.npz` EVIMO, et produit un nouveau `.npz` dont les events tombant dans les zones
+prédites comme dynamiques ont été retirés.
+
+```bash
+conda run --no-capture-output -n devo python scripts/filter_events.py \
+    --weights checkpoints/convlstm-v4-unet/best_iou.pt \
+    --config  configs/convlstm_evimo.yaml \
+    --input   path/to/seq.npz \
+    --output  path/to/seq_filtered.npz
+```
+
+Le script affiche le nombre d'events avant/après et le pourcentage retiré.
+
+**Pipeline interne :**
+1. `Predictor.predict_sequence()` — voxelise la séquence et prédit un masque (H×W bool) par frame.
+2. `FrameMasks(pred_masks, ts=fm.ts[:-1])` — aligne chaque masque sur son intervalle temporel `[ts_i, ts_{i+1})`.
+3. `remove_events_in_mask()` — pour chaque event, lookup du masque actif via `searchsorted`, suppression si le pixel est masqué.
+4. `save_events_npz()` — sauvegarde en `.npz` compatible `load_evimo_npz`, avec l'index par frame recompté.
+
+Utilisation depuis Python :
+
+```python
+from ms_model.inference import Predictor
+from ms_model.io.loaders import save_events_npz
+
+predictor = Predictor("checkpoints/.../best_iou.pt", "configs/convlstm_evimo.yaml")
+ea_filtered = predictor.filter_events("seq.npz")
+save_events_npz(ea_filtered, "seq_filtered.npz")
+```
+
+---
+
 ## Suivi avec wandb
 
 Les métriques (`train/loss`, `val/loss`) sont loggées sur

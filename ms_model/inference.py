@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import yaml
 
 from ms_model.io.loaders import load_events, load_evimo_mask
+from ms_model.io.masks import FrameMasks
+from ms_model.masking import remove_events_in_mask
 from ms_model.models import build_model
 from ms_model.representations.voxel import make_voxel_sequence
 from ms_model.viz.render import render_event_frame
@@ -87,4 +89,28 @@ class Predictor:
             "pred_masks":   [pred_masks[i] for i in range(N)],
             "gt_masks":     gt_masks,
             "n_frames":     N,
+            "_frame_ts":    fm.ts,  # (M+1,) bornes des intervalles voxel
         }
+
+    def filter_events(self, npz_path: str | Path) -> "EventArray":
+        """Prédit les masques et retourne un EventArray sans les events dynamiques.
+
+        Le masque prédit pour l'intervalle [ts_i, ts_{i+1}) est appliqué à tous
+        les events dont le timestamp tombe dans cet intervalle.
+        """
+        from ms_model.io.events import EventArray  # noqa: F401 (type hint)
+
+        npz_path = Path(npz_path)
+        result = self.predict_sequence(npz_path)
+
+        # ts[i] = début de l'intervalle voxel i → aligné avec events_in_mask
+        ts = result["_frame_ts"][: result["n_frames"]]  # fm.ts[:-1]
+        pred_masks = np.stack(result["pred_masks"]).astype(np.uint8)  # (N, H, W)
+        fm_pred = FrameMasks(masks=pred_masks, ts=ts)
+
+        ea = load_events(npz_path)
+        ea_filtered = remove_events_in_mask(ea, fm_pred)
+
+        n_in, n_out = len(ea), len(ea_filtered)
+        print(f"{n_in} → {n_out} events ({100 * (1 - n_out / n_in):.1f} % filtrés)")
+        return ea_filtered

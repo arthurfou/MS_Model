@@ -69,6 +69,20 @@ def load_evimo_mask(path: Union[str, Path]) -> FrameMasks:
     return FrameMasks(masks=masks, ts=ts)
 
 
+def save_events_npz(ea: EventArray, path: Union[str, Path]) -> None:
+    """Sauvegarde un EventArray au format npz compatible avec load_evimo_npz.
+
+    Si ea.frame_ts est disponible, l'index par frame est recompté depuis
+    les events filtrés (les indices ont bougé après filtrage).
+    """
+    path = Path(path)
+    out: dict = {"events": ea.events.astype(np.float32)}
+    if ea.frame_ts is not None and len(ea) > 0:
+        idx = np.searchsorted(ea.t, ea.frame_ts, side="left")
+        out["index"] = np.clip(idx, 0, len(ea) - 1).astype(np.int64)
+    np.savez_compressed(path, **out)
+
+
 def load_events(path: Union[str, Path], format: Optional[str] = None, **kwargs) -> EventArray:
     """Charge un fichier d'events et retourne un `EventArray`.
 
