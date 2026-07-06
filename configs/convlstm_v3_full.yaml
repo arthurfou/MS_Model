@@ -1,0 +1,104 @@
+data:
+  root: ../datasets/evimo_full
+  train_sequences:
+    # basic — CAM_* exclus (masque 100% vide, biaiserait vers "tout background")
+    - train/basic/npz/O1_FB.npz
+    - train/basic/npz/O1_LR.npz
+    - train/basic/npz/O1_UD.npz
+    - train/basic/npz/O1_YAW.npz
+    - train/basic/npz/TABLETOP_CLOSE.npz
+    - train/basic/npz/TABLETOP_FAR.npz
+    # box (12 séquences)
+    - train/box/npz/seq_00.npz
+    - train/box/npz/seq_01.npz
+    - train/box/npz/seq_02.npz
+    - train/box/npz/seq_03.npz
+    - train/box/npz/seq_04.npz
+    - train/box/npz/seq_05.npz
+    - train/box/npz/seq_06.npz
+    - train/box/npz/seq_07.npz
+    - train/box/npz/seq_08.npz
+    - train/box/npz/seq_09.npz
+    - train/box/npz/seq_10.npz
+    - train/box/npz/seq_11.npz
+    # floor (3 séquences)
+    - train/floor/npz/seq_00.npz
+    - train/floor/npz/seq_01.npz
+    - train/floor/npz/seq_02.npz
+    # table (6 séquences)
+    - train/table/npz/seq_00.npz
+    - train/table/npz/seq_01.npz
+    - train/table/npz/seq_02.npz
+    - train/table/npz/seq_03.npz
+    - train/table/npz/seq_04.npz
+    - train/table/npz/seq_05.npz
+    # tabletop (6 séquences)
+    - train/tabletop/npz/seq_00.npz
+    - train/tabletop/npz/seq_01.npz
+    - train/tabletop/npz/seq_02.npz
+    - train/tabletop/npz/seq_03.npz
+    - train/tabletop/npz/seq_04.npz
+    - train/tabletop/npz/seq_05.npz
+    # tabletop-egomotion (4 séquences)
+    - train/tabletop-egomotion/npz/seq_00.npz
+    - train/tabletop-egomotion/npz/seq_01.npz
+    - train/tabletop-egomotion/npz/seq_02.npz
+    - train/tabletop-egomotion/npz/seq_03.npz
+    # wall (3 séquences)
+    - train/wall/npz/seq_00.npz
+    - train/wall/npz/seq_01.npz
+    - train/wall/npz/seq_02.npz
+  val_sequences:
+    # split eval officiel EVIMO — sert aussi de test set
+    # box (6 séquences)
+    - eval/box/npz/seq_00.npz
+    - eval/box/npz/seq_01.npz
+    - eval/box/npz/seq_02.npz
+    - eval/box/npz/seq_03.npz
+    - eval/box/npz/seq_04.npz
+    - eval/box/npz/seq_05.npz
+    # fast (3 séquences)
+    - eval/fast/npz/seq_00.npz
+    - eval/fast/npz/seq_01.npz
+    - eval/fast/npz/seq_02.npz
+    # floor (2 séquences)
+    - eval/floor/npz/seq_00.npz
+    - eval/floor/npz/seq_01.npz
+    # table (4 séquences)
+    - eval/table/npz/seq_00.npz
+    - eval/table/npz/seq_01.npz
+    - eval/table/npz/seq_02.npz
+    - eval/table/npz/seq_03.npz
+    # tabletop (4 séquences)
+    - eval/tabletop/npz/seq_00.npz
+    - eval/tabletop/npz/seq_01.npz
+    - eval/tabletop/npz/seq_02.npz
+    - eval/tabletop/npz/seq_03.npz
+    # wall (2 séquences)
+    - eval/wall/npz/seq_00.npz
+    - eval/wall/npz/seq_01.npz
+  seq_len: 16
+  nb_time_bins: 5
+  patch_size: 4
+  mask_thicken_radius: 3
+
+model:
+  name: convlstm_v3
+  hidden_dim: 64
+  num_groups: 8
+
+training:
+  epochs: 100
+  batch_size: 8
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  use_scheduler: true
+  loss: bce_dice
+  loss_pos_weight: 10.0
+  num_workers: 4
+  checkpoint_dir: checkpoints
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: ""
