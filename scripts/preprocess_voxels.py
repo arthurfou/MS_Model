@@ -1,12 +1,15 @@
 """Prétraitement offline des voxel grids EVIMO.
 
-Calcule et sauvegarde les tenseurs voxelisés (.voxels_bins<N>.pt) à côté de
+Calcule et sauvegarde les tenseurs voxelisés (.voxels_bins<N>.npy) à côté de
 chaque .npz, sans lancer d'entraînement. À exécuter une seule fois sur un
 nœud CPU avant de soumettre les jobs GPU.
 
+Le format .npy permet un chargement lazy via numpy memmap (pas d'OOM même sur
+de grands datasets). Les anciens caches .pt sont migrés automatiquement.
+
 Usage :
-    python scripts/preprocess_voxels.py --data-root ../datasets/EV-IMO/eval
-    python scripts/preprocess_voxels.py --data-root ../datasets/EV-IMO/eval --nb-time-bins 5
+    python scripts/preprocess_voxels.py --data-root ../datasets/evimo_full
+    python scripts/preprocess_voxels.py --data-root ../datasets/evimo_full --nb-time-bins 5
 """
 
 import argparse
@@ -16,8 +19,10 @@ from pathlib import Path
 from ms_model.io.loaders import load_events, load_evimo_mask
 from ms_model.representations.voxel import make_voxel_sequence
 
+import numpy as np
+
 try:
-    import torch
+    import torch  # noqa: F401 — vérifie la présence de torch pour make_voxel_sequence
 except ImportError:
     raise SystemExit("torch n'est pas installé dans l'environnement courant.")
 
@@ -33,7 +38,8 @@ def preprocess(data_root: str, nb_time_bins: int, force: bool) -> None:
     print(f"{len(npz_files)} fichiers .npz trouvés dans {root}\n")
 
     for i, npz_path in enumerate(npz_files, 1):
-        cache_path = npz_path.with_suffix(f".voxels_bins{nb_time_bins}.pt")
+        cache_path = npz_path.with_suffix(f".voxels_bins{nb_time_bins}.npy")
+        old_pt     = npz_path.with_suffix(f".voxels_bins{nb_time_bins}.pt")
 
         if cache_path.exists() and not force:
             print(f"[{i}/{len(npz_files)}] {npz_path.name} — cache déjà présent, ignoré")
@@ -42,12 +48,19 @@ def preprocess(data_root: str, nb_time_bins: int, force: bool) -> None:
         t0 = time.time()
         print(f"[{i}/{len(npz_files)}] {npz_path.name} ...", end=" ", flush=True)
 
-        ea = load_events(npz_path)
-        fm = load_evimo_mask(npz_path)
-        voxel_seq = make_voxel_sequence(ea, fm.ts, nb_of_time_bins=nb_time_bins)
-        torch.save(voxel_seq, cache_path)
+        if old_pt.exists() and not force:
+            import torch as _torch
+            voxel_seq = _torch.load(old_pt)
+            arr = voxel_seq.numpy()
+        else:
+            ea = load_events(npz_path)
+            fm = load_evimo_mask(npz_path)
+            import torch as _torch
+            voxel_seq = make_voxel_sequence(ea, fm.ts, nb_of_time_bins=nb_time_bins)
+            arr = voxel_seq.numpy()
 
-        print(f"{voxel_seq.shape[0]} frames, {time.time() - t0:.1f}s")
+        np.save(cache_path, arr)
+        print(f"{arr.shape[0]} frames, {time.time() - t0:.1f}s")
 
     print("\nPrétraitement terminé.")
 
