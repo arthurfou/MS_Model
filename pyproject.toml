@@ -11,6 +11,7 @@ dependencies = ["numpy", "torch", "wandb", "pyyaml", "opencv-python"]
 [project.optional-dependencies]
 dev = ["pytest"]
 demo = ["gradio"]
+eval = ["matplotlib"]
 
 [tool.setuptools.packages.find]
 include = ["ms_model*"]

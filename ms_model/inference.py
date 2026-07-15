@@ -13,6 +13,37 @@ from ms_model.representations.voxel import make_voxel_sequence
 from ms_model.viz.render import render_event_frame
 
 
+def load_model_from_checkpoint(
+    weights_path: str | Path, config_path: str | Path, device: torch.device
+) -> tuple[torch.nn.Module, dict]:
+    """Charge un modèle (archi + poids) à partir d'un checkpoint + yaml d'entraînement.
+
+    Retourne le modèle (en mode eval, sur `device`) et le `data_cfg` du yaml
+    (utile pour reconstruire les datasets avec les mêmes paramètres).
+    """
+    cfg = yaml.safe_load(Path(config_path).read_text())
+    data_cfg = cfg["data"]
+    model_cfg = dict(cfg["model"])
+    model_name = model_cfg.pop("name")
+
+    model = build_model(
+        model_name,
+        in_channels=data_cfg["nb_time_bins"],
+        patch_size=data_cfg["patch_size"],
+        **model_cfg,
+    ).to(device)
+
+    ckpt = torch.load(weights_path, map_location=device)
+    # best.pt = state_dict direct ; last.pt = dict avec clé "model"
+    if isinstance(ckpt, dict) and "model" in ckpt:
+        model.load_state_dict(ckpt["model"])
+    else:
+        model.load_state_dict(ckpt)
+    model.eval()
+
+    return model, data_cfg
+
+
 class Predictor:
     """Charge un modèle entraîné et prédit les masques sur une séquence npz.
 
@@ -21,38 +52,29 @@ class Predictor:
     weights_path : chemin vers best.pt ou last.pt
     config_path  : yaml d'entraînement (pour lire l'archi et les params data)
     device       : "cuda", "cpu", ou None (auto-detect)
+    threshold    : seuil de sigmoïde par défaut pour binariser les prédictions
+                   (indépendant de l'entraînement, ajustable à l'inférence ;
+                   voir scripts/sweep_threshold.py pour le calibrer)
     """
 
-    def __init__(self, weights_path: str | Path, config_path: str | Path, device: str | None = None):
+    def __init__(
+        self,
+        weights_path: str | Path,
+        config_path: str | Path,
+        device: str | None = None,
+        threshold: float = 0.5,
+    ):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
+        self.threshold = threshold
 
-        cfg = yaml.safe_load(Path(config_path).read_text())
-        data_cfg = cfg["data"]
-        model_cfg = dict(cfg["model"])
-        model_name = model_cfg.pop("name")
-
+        self.model, data_cfg = load_model_from_checkpoint(weights_path, config_path, self.device)
         self.patch_size = data_cfg["patch_size"]
         self.nb_time_bins = data_cfg["nb_time_bins"]
         self.seq_len = data_cfg["seq_len"]
 
-        self.model = build_model(
-            model_name,
-            in_channels=self.nb_time_bins,
-            patch_size=self.patch_size,
-            **model_cfg,
-        ).to(self.device)
-
-        ckpt = torch.load(weights_path, map_location=self.device)
-        # best.pt = state_dict direct ; last.pt = dict avec clé "model"
-        if isinstance(ckpt, dict) and "model" in ckpt:
-            self.model.load_state_dict(ckpt["model"])
-        else:
-            self.model.load_state_dict(ckpt)
-        self.model.eval()
-
-    def predict_sequence(self, npz_path: str | Path) -> dict:
+    def predict_sequence(self, npz_path: str | Path, threshold: float | None = None) -> dict:
         """Prédit les masques pour toute une séquence npz.
 
         Retourne un dict avec :
@@ -61,6 +83,8 @@ class Predictor:
         - "gt_masks"     : list[np.ndarray (H, W) bool]  (masque GT binaire)
         - "n_frames"     : int
         """
+        threshold = threshold if threshold is not None else self.threshold
+
         npz_path = Path(npz_path)
         ea = load_events(npz_path)
         fm = load_evimo_mask(npz_path)
@@ -79,7 +103,7 @@ class Predictor:
         logits_seq = torch.cat(all_logits, dim=0)          # (N, Hp, Wp)
         pred_prob = torch.sigmoid(logits_seq).unsqueeze(1) # (N, 1, Hp, Wp)
         pred_full = F.interpolate(pred_prob, size=(H, W), mode="nearest")  # (N, 1, H, W)
-        pred_masks = (pred_full[:, 0] > 0.5).numpy()       # (N, H, W) bool
+        pred_masks = (pred_full[:, 0] > threshold).numpy() # (N, H, W) bool
 
         event_frames = [render_event_frame(ea, fm.ts[i - 1], fm.ts[i]) for i in range(1, len(fm.ts))]
         gt_masks = [(m != 0) for m in fm.masks[:-1]]
@@ -92,7 +116,7 @@ class Predictor:
             "_frame_ts":    fm.ts,  # (M+1,) bornes des intervalles voxel
         }
 
-    def filter_events(self, npz_path: str | Path) -> "EventArray":
+    def filter_events(self, npz_path: str | Path, threshold: float | None = None) -> "EventArray":
         """Prédit les masques et retourne un EventArray sans les events dynamiques.
 
         Le masque prédit pour l'intervalle [ts_i, ts_{i+1}) est appliqué à tous
@@ -101,7 +125,7 @@ class Predictor:
         from ms_model.io.events import EventArray  # noqa: F401 (type hint)
 
         npz_path = Path(npz_path)
-        result = self.predict_sequence(npz_path)
+        result = self.predict_sequence(npz_path, threshold=threshold)
 
         # ts[i] = début de l'intervalle voxel i → aligné avec events_in_mask
         ts = result["_frame_ts"][: result["n_frames"]]  # fm.ts[:-1]

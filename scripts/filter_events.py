@@ -22,9 +22,11 @@ def main() -> None:
     parser.add_argument("--input",   required=True, help="Fichier .npz d'events en entrée")
     parser.add_argument("--output",  required=True, help="Fichier .npz filtré en sortie")
     parser.add_argument("--device",  default=None,  help="cuda / cpu (auto-détect si omis)")
+    parser.add_argument("--threshold", type=float, default=0.5,
+                         help="Seuil de sigmoïde pour binariser le masque dynamique (défaut: 0.5)")
     args = parser.parse_args()
 
-    predictor = Predictor(args.weights, args.config, device=args.device)
+    predictor = Predictor(args.weights, args.config, device=args.device, threshold=args.threshold)
     ea_filtered = predictor.filter_events(args.input)
     save_events_npz(ea_filtered, args.output)
     print(f"Sauvegardé : {args.output}")
