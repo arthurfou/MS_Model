@@ -10,6 +10,14 @@ Format attendu par le forward d'entraînement de DEVO (cf. train.py) :
     disps      : (n, H, W) disparité (= depth_scale / depth)
     intrinsics : (4,) = [fx, fy, cx, cy]
 
+Chargement **paresseux** (lazy) :
+- Les voxels sont lus par mmap depuis le cache disque `<npz>.voxels_bins{N}.npy` (préproduit par
+  `EvimoSegDataset`) → slice de clip = quelques MB de disque, pas de voxelisation à la volée.
+- depth / mask GT (compressés dans le npz, ~2 GB décompressés chacun) sont chargés à la demande
+  au niveau **séquence**, avec un petit cache LRU par worker (`cache_size` séquences). Peak RAM
+  ≈ num_workers × cache_size × ~2 GB (depth) + O(mask compressed).
+- Poses et intrinsèques sont préchargés dans __init__ (petits).
+
 ⚠️ CONVENTION DE POSE — la brique à valider empiriquement. `DEVO/error_explained.md` documente
 un bug Sim3/orientation sur EVIMO Box Seq 00 : la convention des poses EVIMO est un piège connu.
 L'extraction est isolée dans `evimo_cam_to_pose7()` — si la BA ne converge pas / l'ATE explose,
@@ -17,17 +25,17 @@ c'est le premier endroit à corriger (c2w vs w2c, ordre du quaternion, axes cam�
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from ms_model.io.loaders import load_events, load_evimo_mask
+from ms_model.io.masks import FrameMasks
 from ms_model.masking import thicken_mask
 from ms_model.data.evimo_dataset import downsample_mask
-from ms_model.representations.voxel import make_voxel_sequence
 
 
 def evimo_cam_to_pose7(frame: dict) -> np.ndarray:
@@ -40,44 +48,34 @@ def evimo_cam_to_pose7(frame: dict) -> np.ndarray:
     return np.array([t["x"], t["y"], t["z"], q["x"], q["y"], q["z"], q["w"]], dtype=np.float64)
 
 
-def _load_sequence(npz_path, nb_time_bins, patch_size, depth_scale, provide_gt_mask,
-                   mask_thicken_radius, min_depth):
-    """Charge une séquence npz -> dict de tenseurs (voxels, poses, disps, intrinsics[, gt])."""
-    npz_path = Path(npz_path)
-    data = np.load(npz_path, allow_pickle=True)
-    meta = data["meta"].item()
-    frames = meta["frames"]
+def _voxel_cache_path(npz_path: Path, nb_time_bins: int) -> Path:
+    return npz_path.with_suffix(f".voxels_bins{nb_time_bins}.npy")
 
-    ea = load_events(npz_path)
-    frame_ts = np.array([f["ts"] for f in frames], dtype=np.float64)
-    voxel_seq = make_voxel_sequence(ea, frame_ts, nb_of_time_bins=nb_time_bins)  # (N, C, H, W)
-    N = voxel_seq.shape[0]  # = len(frames) - 1
 
-    poses = np.stack([evimo_cam_to_pose7(frames[i]) for i in range(N)])  # (N, 7)
+def _read_meta_and_poses(npz_path: Path):
+    """Lit la meta (frames -> poses c2w, K) sans charger events/depth/mask."""
+    with np.load(npz_path, allow_pickle=True) as data:
+        meta = data["meta"].item()
+        frames = meta["frames"]
+        K = np.asarray(data["K"])
+    return frames, K
 
-    depth = data["depth"][:N].astype(np.float32)          # (N, H, W), mm
-    depth_m = depth / depth_scale
-    disps = np.where(depth_m > (min_depth / depth_scale), 1.0 / np.clip(depth_m, 1e-6, None), 0.0)
-    disps = disps.astype(np.float32)                      # (N, H, W)
 
-    K = data["K"]
-    intrinsics = np.array([K[0, 0], K[1, 1], K[0, 2], K[1, 2]], dtype=np.float32)
+def _load_depth_and_mask(npz_path: Path, N: int, want_mask: bool):
+    """Charge depth (+ mask si demandé) pour N frames — décompresse le npz (I/O lourd)."""
+    with np.load(npz_path, allow_pickle=True) as data:
+        depth = data["depth"][:N].astype(np.float32)          # (N, H, W) mm
+        mask = data["mask"][:N] if want_mask else None
+    return depth, mask
 
-    out = {
-        "voxels": voxel_seq,                              # (N, C, H, W) tensor
-        "poses": torch.from_numpy(poses).float(),         # (N, 7)
-        "disps": torch.from_numpy(disps),                 # (N, H, W)
-        "intrinsics": torch.from_numpy(intrinsics),       # (4,)
-        "N": N,
-        "scene_id": str(npz_path.parent.parent.name) + "/" + npz_path.stem,
-    }
-    if provide_gt_mask:
-        fm = load_evimo_mask(npz_path)
-        if mask_thicken_radius > 0:
-            fm = thicken_mask(fm, radius=mask_thicken_radius)
-        gt = torch.stack([downsample_mask(fm.masks[i], patch_size) for i in range(N)])  # (N, Hp, Wp)
-        out["gt_dyn"] = gt
-    return out
+
+def _prepare_gt_dyn(mask_arr: np.ndarray, ts_frames: np.ndarray,
+                    patch_size: int, mask_thicken_radius: int) -> torch.Tensor:
+    """Convertit un array (N, H, W) de segmentation en score dynamique (N, Hp, Wp) sous-échantillonné."""
+    fm = FrameMasks(masks=mask_arr, ts=ts_frames)
+    if mask_thicken_radius > 0:
+        fm = thicken_mask(fm, radius=mask_thicken_radius)
+    return torch.stack([downsample_mask(fm.masks[i], patch_size) for i in range(len(fm.masks))])
 
 
 class EvimoClipDataset(Dataset):
@@ -89,6 +87,8 @@ class EvimoClipDataset(Dataset):
         provide_gt_mask: si True, chaque item inclut le masque dynamique GT sous-échantillonné
             (pour la loss de masque supervisée du M2). Sinon, seule la pose-loss façonne le masque.
         stride_clips: pas entre débuts de clips (1 = chevauchement max).
+        cache_size: nb de séquences retenues en RAM par worker (LRU, pour depth/mask/disps).
+            2 = compromis RAM/thrashing raisonnable avec num_workers=4 et shuffle=True.
     """
 
     def __init__(
@@ -102,37 +102,95 @@ class EvimoClipDataset(Dataset):
         mask_thicken_radius: int = 0,
         stride_clips: int = 1,
         min_depth: float = 1.0,
+        cache_size: int = 2,
     ) -> None:
         self.provide_gt_mask = provide_gt_mask
         self.n_frames = n_frames
-        self.seqs = []
-        self.index = []  # (seq_idx, start)
+        self.nb_time_bins = nb_time_bins
+        self.patch_size = patch_size
+        self.depth_scale = depth_scale
+        self.mask_thicken_radius = mask_thicken_radius
+        self.min_depth = min_depth
+        self.cache_size = max(1, int(cache_size))
 
-        for si, path in enumerate(npz_paths):
-            print(f"[EvimoClipDataset] ({si + 1}/{len(npz_paths)}) {path}", flush=True)
-            seq = _load_sequence(path, nb_time_bins, patch_size, depth_scale,
-                                 provide_gt_mask, mask_thicken_radius, min_depth)
-            self.seqs.append(seq)
-            for start in range(0, seq["N"] - n_frames + 1, stride_clips):
+        self.paths = [Path(p) for p in npz_paths]
+        self.voxel_paths: list[Path] = []
+        self.per_seq_N: list[int] = []
+        self.poses_all: list[torch.Tensor] = []
+        self.intrinsics_all: list[torch.Tensor] = []
+        self.frame_ts_all: list[np.ndarray] = []
+        self.scene_ids: list[str] = []
+        self.index: list[tuple] = []  # (seq_idx, start)
+
+        for si, path in enumerate(self.paths):
+            vpath = _voxel_cache_path(path, nb_time_bins)
+            if not vpath.exists():
+                raise FileNotFoundError(
+                    f"[EvimoClipDataset] cache voxel manquant : {vpath}\n"
+                    f"    Le cache est produit automatiquement par EvimoSegDataset ; sinon "
+                    f"le régénérer via make_voxel_sequence.")
+            # header mmap only — no data pulled from disk yet
+            N_vox = np.load(vpath, mmap_mode="r").shape[0]
+
+            frames, K = _read_meta_and_poses(path)
+            N = min(N_vox, len(frames) - 1)  # sécurité si meta un peu plus grand que voxel
+            poses = torch.from_numpy(np.stack([evimo_cam_to_pose7(frames[i]) for i in range(N)])).float()
+            intr = torch.from_numpy(np.array([K[0, 0], K[1, 1], K[0, 2], K[1, 2]], dtype=np.float32))
+            ts = np.array([f["ts"] for f in frames[:N]], dtype=np.float64)
+
+            self.voxel_paths.append(vpath)
+            self.per_seq_N.append(N)
+            self.poses_all.append(poses)
+            self.intrinsics_all.append(intr)
+            self.frame_ts_all.append(ts)
+            self.scene_ids.append(f"{path.parent.parent.name}/{path.stem}")
+            for start in range(0, N - n_frames + 1, stride_clips):
                 self.index.append((si, start))
+            print(f"[EvimoClipDataset] ({si + 1}/{len(self.paths)}) meta {path.name} -> N={N} "
+                  f"clips={max(0, N - n_frames + 1)}", flush=True)
 
         if not self.index:
             raise ValueError(f"Aucun clip de {n_frames} frames — séquences trop courtes ?")
 
+        # Cache LRU depth+gt_dyn (par instance / par worker).
+        self._cache: "OrderedDict[int, dict]" = OrderedDict()
+
     def __len__(self) -> int:
         return len(self.index)
 
+    def _get_heavy(self, si: int) -> dict:
+        """Depth (disps) + gt_dyn pour la séquence si — chargés à la demande, cache LRU."""
+        if si in self._cache:
+            self._cache.move_to_end(si)
+            return self._cache[si]
+        N = self.per_seq_N[si]
+        depth, mask = _load_depth_and_mask(self.paths[si], N, want_mask=self.provide_gt_mask)
+        depth_m = depth / self.depth_scale
+        disps = np.where(depth_m > (self.min_depth / self.depth_scale),
+                         1.0 / np.clip(depth_m, 1e-6, None), 0.0).astype(np.float32)
+        heavy = {"disps": torch.from_numpy(disps)}  # (N, H, W)
+        if self.provide_gt_mask:
+            heavy["gt_dyn"] = _prepare_gt_dyn(
+                mask, self.frame_ts_all[si], self.patch_size, self.mask_thicken_radius)
+        self._cache[si] = heavy
+        while len(self._cache) > self.cache_size:
+            self._cache.popitem(last=False)
+        return heavy
+
     def __getitem__(self, idx: int):
         si, s = self.index[idx]
-        seq = self.seqs[si]
         e = s + self.n_frames
-        images = seq["voxels"][s:e].float()
-        poses = seq["poses"][s:e]
-        disps = seq["disps"][s:e]
-        intrinsics = seq["intrinsics"]
-        # blob compatible train_coupled : [..., scene_id] (+ gt_dyn avant scene_id si demandé)
+        # voxels : mmap slice (quelques MB, jamais tout matérialisé)
+        vox = np.array(np.load(self.voxel_paths[si], mmap_mode="r")[s:e])
+        images = torch.from_numpy(vox).float()                        # (n, C, H, W)
+
+        heavy = self._get_heavy(si)
+        poses = self.poses_all[si][s:e]
+        disps = heavy["disps"][s:e]
+        # DEVO attend (n_frames, 4) — pas (4,) — car pops.transform fait intrinsics[:, ii].
+        intrinsics = self.intrinsics_all[si].unsqueeze(0).expand(self.n_frames, 4).contiguous()
         blob = [images, poses, disps, intrinsics]
         if self.provide_gt_mask:
-            blob.append(seq["gt_dyn"][s:e])
-        blob.append(seq["scene_id"])
+            blob.append(heavy["gt_dyn"][s:e])
+        blob.append(self.scene_ids[si])
         return blob
