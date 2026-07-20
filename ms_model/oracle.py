@@ -37,6 +37,9 @@ class TimestampMaskProvider:
         device: device des tenseurs retournés.
         max_dt_ms: garde-fou — alerte (une fois) si le plus proche timestamp est plus
             loin que ce seuil (détecte une mauvaise base temporelle).
+        ts_offset_s: offset à soustraire de ts_us/1e6 avant lookup. Nécessaire quand
+            ts_us vient de DEVO (Unix epoch µs) et ts_seconds est relatif (EVIMO npz).
+            Calcul: tss_imgs_us[0]/1e6 − meta_ts[0].
     """
 
     def __init__(
@@ -45,9 +48,11 @@ class TimestampMaskProvider:
         scores: torch.Tensor,
         device: Union[str, torch.device] = "cuda",
         max_dt_ms: float = 50.0,
+        ts_offset_s: float = 0.0,
     ) -> None:
         self.device = torch.device(device)
         self.max_dt_ms = max_dt_ms
+        self._ts_offset_s = float(ts_offset_s)
 
         ts = np.asarray(ts_seconds, dtype=np.float64)
         order = np.argsort(ts)
@@ -69,7 +74,7 @@ class TimestampMaskProvider:
         """Retourne le score dynamique (1, 1, Hp, Wp) pour la frame la plus proche de ts_us."""
         if isinstance(ts_us, torch.Tensor):
             ts_us = ts_us.item()
-        t_s = float(ts_us) / 1e6
+        t_s = float(ts_us) / 1e6 - self._ts_offset_s
         idx = self._nearest_index(t_s)
 
         dt_ms = abs(self.ts[idx] - t_s) * 1e3
@@ -94,11 +99,13 @@ class OracleDynMaskProvider(TimestampMaskProvider):
         patch_size: int = 4,
         device: Union[str, torch.device] = "cuda",
         max_dt_ms: float = 50.0,
+        ts_offset_s: float = 0.0,
     ) -> None:
         scores = torch.stack(
             [downsample_mask(m, patch_size) for m in frame_masks.masks]
         )  # (M, Hp, Wp), {0,1}
-        super().__init__(frame_masks.ts, scores, device=device, max_dt_ms=max_dt_ms)
+        super().__init__(frame_masks.ts, scores, device=device, max_dt_ms=max_dt_ms,
+                         ts_offset_s=ts_offset_s)
 
     @classmethod
     def from_evimo_npz(
@@ -108,16 +115,19 @@ class OracleDynMaskProvider(TimestampMaskProvider):
         thicken_radius: int = 0,
         device: Union[str, torch.device] = "cuda",
         max_dt_ms: float = 50.0,
+        ts_offset_s: float = 0.0,
     ) -> "OracleDynMaskProvider":
         """Construit le provider depuis un npz EVIMO (clés `mask` + `meta`).
 
         thicken_radius > 0 dilate les masques (marge autour des objets mobiles) avant
         sous-échantillonnage — un patch en bordure d'objet reste pollué.
+        ts_offset_s: offset à soustraire lors du lookup (voir TimestampMaskProvider).
         """
         fm = load_evimo_mask(npz_path)
         if thicken_radius > 0:
             fm = thicken_mask(fm, radius=thicken_radius)
-        return cls(fm, patch_size=patch_size, device=device, max_dt_ms=max_dt_ms)
+        return cls(fm, patch_size=patch_size, device=device, max_dt_ms=max_dt_ms,
+                   ts_offset_s=ts_offset_s)
 
 
 class LearnedDynMaskProvider(TimestampMaskProvider):
@@ -139,6 +149,7 @@ class LearnedDynMaskProvider(TimestampMaskProvider):
         device: Union[str, torch.device] = "cuda",
         threshold: Optional[float] = None,
         max_dt_ms: float = 50.0,
+        ts_offset_s: float = 0.0,
     ) -> None:
         # import local pour ne pas alourdir l'import du module (charge torch/modèles)
         from ms_model.inference import load_model_from_checkpoint
@@ -168,4 +179,5 @@ class LearnedDynMaskProvider(TimestampMaskProvider):
             scores = (scores > threshold).float()
 
         # la i-ème prédiction couvre [ts_i, ts_{i+1}) -> on l'étiquette par ts_i
-        super().__init__(frame_ts[:N], scores, device=device, max_dt_ms=max_dt_ms)
+        super().__init__(frame_ts[:N], scores, device=device, max_dt_ms=max_dt_ms,
+                         ts_offset_s=ts_offset_s)
