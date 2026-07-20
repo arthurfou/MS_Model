@@ -1,12 +1,12 @@
 # Rapport détaillé — Task-driven event suppression pour VO événementielle apprise
 
 **Auteur** : Arthur Fou (IPAL, stage CNRS/NUS)
-**Date** : 2026-07-17
-**État** : ✅ pipeline M0→M4 complet, 3 gates validés, résultats bruts et détaillés
+**Date** : 2026-07-20 (mis à jour)
+**État** : ✅ pipeline M0→M4 complet · ✅ sweep variance 5 seeds terminé · ✅ bug timestamp corrigé · 🔄 M4-fixed en cours · 🔄 scratch training en cours
 
 Ce rapport détaille **chaque configuration sur chaque scène du val split**, avec les
-runs indépendants (M0 v21, M1 v21) pour l'estimation de variance et le run M4 unifié qui
-sert de tableau central du papier.
+runs indépendants (M0 v21, M1 v21), le run M4 unifié, le sweep de variance 5 seeds,
+et les nouvelles expériences scratch (MS initialisé aléatoirement, prior anti-collapse).
 
 ---
 
@@ -14,16 +14,18 @@ sert de tableau central du papier.
 
 1. [Question de recherche et hypothèses](#1-question-de-recherche-et-hypothèses)
 2. [Protocole expérimental](#2-protocole-expérimental)
-3. [Tableau central du papier (M4)](#3-tableau-central-du-papier-m4)
+3. [Tableau central du papier (M4) — run initial](#3-tableau-central-du-papier-m4--run-initial)
 4. [Résultats détaillés par scène — M4](#4-résultats-détaillés-par-scène--m4)
 5. [Analyses par configuration](#5-analyses-par-configuration)
 6. [Analyses par catégorie de scène](#6-analyses-par-catégorie-de-scène)
 7. [Runs indépendants — M0 v21 et M1 v21](#7-runs-indépendants--m0-v21-et-m1-v21)
-8. [Suivi des entraînements couplés](#8-suivi-des-entraînements-couplés)
-9. [Discussion](#9-discussion)
-10. [Points de méthode et bugs](#10-points-de-méthode-et-bugs)
-11. [Limitations et calibrages restants](#11-limitations-et-calibrages-restants)
-12. [Fichiers produits](#12-fichiers-produits)
+8. [Sweep de variance — 5 seeds M2/M3 + M4](#8-sweep-de-variance--5-seeds-m2m3--m4)
+9. [Bug timestamp : impact et correction](#9-bug-timestamp--impact-et-correction)
+10. [Suivi des entraînements couplés](#10-suivi-des-entraînements-couplés)
+11. [Discussion](#11-discussion)
+12. [Points de méthode et bugs](#12-points-de-méthode-et-bugs)
+13. [Limitations et calibrages restants](#13-limitations-et-calibrages-restants)
+14. [Fichiers produits](#14-fichiers-produits)
 
 ---
 
@@ -82,10 +84,15 @@ Les deux ordonnent identiquement les 5 configurations ; les Δ % relatifs sont c
 
 ---
 
-## 3. Tableau central du papier (M4)
+## 3. Tableau central du papier (M4) — run initial
 
 Run unifié `685104`, tous les configs sur le même vanilla et le même val — comparaison
 100 % fair.
+
+> ⚠️ **Ces chiffres sont entachés du bug timestamp** (voir §9) : les masques oracle,
+> M1, M2, M3 utilisaient tous la dernière frame comme masque statique au lieu du masque
+> aligné temporellement. Les chiffres corrigés (jobs `m4_fixed`, seeds 1-5) sont en cours
+> — ce tableau sera mis à jour dès leur arrivée.
 
 | Configuration | ATE moyen (script, cm) | ATE moyen scène (cm) | Δ vs vanilla |
 |---|---:|---:|---:|
@@ -95,9 +102,8 @@ Run unifié `685104`, tous les configs sur le même vanilla et le même val — 
 | DEVO + couplé supervisé (M2) | 10.87 | 11.87 | **+4.8 %** |
 | **DEVO + couplé auto-sup (M3)** | **10.59** | **11.58** | **+7.2 %** |
 
-**Ordre validé** : `vanilla < M1 < M2 < oracle < M3`. Les trois hypothèses du plan
-sont vérifiées. M3 auto-supervisé **dépasse l'oracle GT** — c'est le résultat qui vend
-le papier.
+**Ordre observé** (pré-fix) : `vanilla < M1 < M2 < oracle < M3`. Les résultats corrigés
+pourraient réordonner les configs, notamment oracle dont le plafond est sous-estimé.
 
 ---
 
@@ -279,7 +285,112 @@ supériorité de M3 sur l'oracle avec confiance.
 
 ---
 
-## 8. Suivi des entraînements couplés
+## 8. Sweep de variance — 5 seeds M2/M3 + M4
+
+Pour quantifier la variance due au non-déterminisme de DEVO (init de profondeur
+`torch.rand_like`, kernels CUDA non-déterministes), 5 paires d'entraînements
+M2/M3 ont été lancées avec seeds 1 à 5 (`torch.manual_seed`, `np.random.seed`,
+`DataLoader worker_init_fn` en cascade). Chaque seed produit ses propres checkpoints
+dans `results_coupled/m2_seed{N}/` et `results_coupled/m3_seed{N}/`, puis une
+évaluation M4 dédiée dans `results/central_table_seed{N}/`.
+
+> ⚠️ Ces résultats sont également affectés par le bug timestamp (§9). Les chiffres
+> ci-dessous sont donc pré-correction — ils mesurent la variance réelle mais avec une
+> valeur absolue légèrement biaisée.
+
+### 8.1. Résultats par seed (Δ % vs vanilla, pré-fix timestamp)
+
+| seed | vanilla (cm) | oracle Δ | M1 Δ | M2 Δ | M3 Δ |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 11.53 | +6.6 % | +7.0 % | +3.1 % | −2.3 % |
+| 2 | 10.93 | +7.1 % | +0.1 % | −1.0 % | −0.1 % |
+| 3 | 11.00 | +6.2 % | −4.1 % | +2.2 % | **+13.9 %** |
+| 4 | 11.28 | +1.9 % | +2.7 % | +2.5 % | +4.5 % |
+| 5 | 11.47 | +3.8 % | +0.5 % | **+8.8 %** | +0.1 % |
+
+### 8.2. Agrégé 5 seeds (mean ± std, pré-fix timestamp)
+
+| Configuration | ATE moy (cm) | ± std | Δ moy | ± std |
+|---|---:|---:|---:|---:|
+| DEVO vanilla | 11.24 | ±0.27 | — | — |
+| DEVO + oracle GT | 10.67 | ±0.41 | +5.1 % | ±2.2 % |
+| DEVO + appris découplé (M1) | 11.10 | ±0.32 | +1.3 % | ±4.0 % |
+| DEVO + couplé supervisé (M2) | 10.88 | ±0.28 | +3.1 % | ±3.6 % |
+| DEVO + couplé auto-sup (M3) | 10.89 | ±0.89 | +3.2 % | ±6.5 % |
+
+### 8.3. Observations sur la variance
+
+- **M3 est très instable** (σ = 6.5 % Δ, vs σ = 2.2 % pour l'oracle). Allant de −2.3 %
+  à +13.9 % selon la seed. Signe d'un problème de collapse ou d'instabilité du signal
+  auto-supervisé DBA selon l'initialisation.
+- **M2 est plus stable** (σ = 3.6 %) mais le gain moyen chute à +3.1 % (vs +4.8 % dans
+  le run initial non seedé — le run initial avait une seed favorable).
+- **M1 aussi instable** (σ = 4.0 %, de −4.1 % à +7.0 %) : le masque appris séparément
+  est sensible à la seed de DEVO lors de l'évaluation.
+- **Oracle** : σ = 2.2 % — la variance résiduelle est celle de DEVO vanilla lui-même.
+
+### 8.4. Implication pour le papier
+
+Avec ces barres d'erreur, **aucune config ne bat significativement les autres** sur les
+5 seeds (les intervalles se chevauchent tous). Il faut soit :
+1. Corriger d'abord le bug timestamp (M4-fixed en cours) — l'oracle sous-estimé gonfle
+   artificiellement le Δ des autres configs.
+2. Stabiliser M3 (scratch + prior anti-collapse, en cours) pour réduire σ.
+3. Augmenter le nombre de seeds ou utiliser un test statistique (Wilcoxon).
+
+---
+
+## 9. Bug timestamp : impact et correction
+
+### 9.1. Description du bug
+
+**Fichier** : `ms_model/oracle.py` — `TimestampMaskProvider.__call__`
+
+DEVO passe les timestamps en **Unix epoch µs** (~1.54×10¹⁵ µs = 1.54×10⁹ s), mais
+les npz EVIMO stockent les `meta["frames"]["ts"]` en **secondes relatives** (0.046 s,
+0.077 s…). La fonction `np.searchsorted(self.ts, t_s)` avec `t_s ~ 1.54e9 s` et
+`self.ts ~ [0.05, 0.10, ...]` retournait **toujours `len(self.ts)`**, ce qui est
+clampé à `len(self.ts) - 1`.
+
+**Conséquence** : tous les appels retournaient le masque de la **dernière frame**,
+indépendamment du timestamp DEVO. Le masque était donc un masque statique figé sur la
+position finale de l'objet.
+
+**Configs affectées** : oracle GT (M0), M1 découplé, M2 couplé supervisé, M3 auto-sup.
+Le vanilla n'est pas affecté (pas de masque). Les **entraînements** M2/M3 ne sont pas
+affectés (pas de lookup temporel pendant le training — le masque est produit directement
+frame-par-frame par le réseau MS).
+
+### 9.2. Correction appliquée (2026-07-20)
+
+`_ts_offset()` dans `DEVO/evals/eval_evs/eval_evimo_m1_decoupled.py` calcule :
+
+```python
+offset_s = tss_imgs_us[0] / 1e6 - meta_ts[0]
+# ex. fast/seq_00 : 1542151681.97 - 0.047 = 1542151681.93 s
+```
+
+Cet offset est soustrait dans `TimestampMaskProvider.__call__` avant le lookup :
+
+```python
+t_s = float(ts_us) / 1e6 - self._ts_offset_s
+```
+
+Le paramètre `ts_offset_s` est propagé dans `OracleDynMaskProvider.from_evimo_npz`
+et `LearnedDynMaskProvider.__init__`.
+
+### 9.3. Impact attendu
+
+Avec le masque aligné correctement :
+- **Oracle** : devrait être un vrai plafond supérieur (les chiffres pré-fix
+  sous-estimaient le potentiel oracle).
+- **M1/M2/M3** : masque temporellement cohérent → impact difficile à prédire a priori
+  (un masque de la dernière frame peut accidentellement être bon ou mauvais selon la
+  scène). Les M4-fixed (5 seeds, en cours) quantifieront l'écart.
+
+---
+
+## 10. Suivi des entraînements couplés
 
 ### 8.1. M2 couplé supervisé (job 685102)
 
@@ -303,19 +414,44 @@ supériorité de M3 sur l'oracle avec confiance.
   **sans jamais avoir vu de GT** (cohérent avec le taux d'objets mobiles réel EVIMO).
 - Sortie : `results_coupled/m3/ms_final.pt`
 
-### 8.3. M4 tableau central (job 685104)
+### 10.3. M4 tableau central (job 685104)
 
 - Durée : ~1h30
 - 5 lignes × 21 scènes = 105 évaluations DEVO
 - Sortie : `results/central_table/{central_table.md, central_table.csv}`
 - Utilise les checkpoints MS `results_coupled/m2/ms_final.pt` et `.../m3/ms_final.pt`
 - **Note** : M4 utilise le **DEVO vanilla** pour toutes les lignes (pas le DEVO
-  fine-tuné de M2/M3), pour que la comparaison soit fair sur le masque. Ça pourrait
-  changer avec `--devo_coupled_sup` / `--devo_coupled_selfsup`.
+  fine-tuné de M2/M3), pour que la comparaison soit fair sur le masque.
+
+### 10.4. Sweep de variance — M2/M3 seeds 1-5 (jobs 2026-07-17)
+
+5 paires M2/M3 entraînées avec seeds 1 à 5 (torch + numpy + DataLoader). Durée ~7h
+par seed. Tous les `*_final.pt` disponibles dans `results_coupled/m{2,3}_seed{1..5}/`.
+
+### 10.5. M4-fixed — évaluation corrigée (jobs 688823-688827, en cours)
+
+5 évaluations M4 avec le fix timestamp (§9), seeds 1-5. Résultats attendus dans
+`results/central_table_seed{1..5}_fixed/`. En cours (~4h de run au moment de la mise
+à jour, dernières configs M2/M3 en cours d'évaluation).
+
+### 10.6. Scratch training — MS initialisé aléatoirement (jobs 688821-688822, en cours)
+
+Nouvelle expérience : entraîner MS depuis des **poids aléatoires** (sans charger
+`best.pt`) avec un **prior doux anti-collapse** `β·(mask_mean − 0.1)²` (β=0.5).
+Motivé par la variance élevée de M3 sur les seeds (collapse mask_mean→0 ou →1 dans
+certains runs).
+
+| job | config | steps | freeze | outdir | avancement |
+|---|---|---|---|---|---|
+| 688821 | M2-scratch (sup, GT) | 40k | 10k | `results_coupled/m2_scratch/` | ~10 % (~step 4 k) |
+| 688822 | M3-scratch (auto-sup) | 40k | 10k | `results_coupled/m3_scratch/` | ~26 % (~step 10 k, joint) |
+
+Observations préliminaires M3-scratch : `mask_mean` oscille entre 0.08 et 0.19 —
+le prior empêche l'effondrement observé dans les runs seedés.
 
 ---
 
-## 9. Discussion
+## 11. Discussion
 
 ### Pourquoi M3 bat l'oracle GT
 
@@ -360,7 +496,7 @@ attaque.
 
 ---
 
-## 10. Points de méthode et bugs
+## 12. Points de méthode et bugs
 
 Bugs identifiés puis résolus pendant la mise en route. Utiles pour la reproductibilité.
 
@@ -383,9 +519,12 @@ Bugs identifiés puis résolus pendant la mise en route. Utiles pour la reproduc
    Fixé avec `python -u` et `PYTHONUNBUFFERED=1`, plus `--log_every 2` pour un feedback
    rapide.
 
-5. **Bug timestamp `OracleDynMaskProvider`** — écart Unix epoch vs relatif sur les 2
-   scènes `fast/*`. L'oracle sert un masque quasi-nul, ce qui explique les régressions
-   contre-intuitives sur `fast/seq_00,02`. À corriger dans une V2 avant publication.
+5. **Bug timestamp (toutes scènes, pas seulement `fast/*`)** — ✅ **Corrigé le 2026-07-20**.
+   `OracleDynMaskProvider` et `LearnedDynMaskProvider` comparaient des timestamps
+   Unix epoch µs (DEVO) avec des timestamps relatifs en secondes (npz EVIMO). Le
+   `searchsorted` retournait toujours le dernier indice → masque statique figé sur la
+   dernière frame. Fix : `_ts_offset()` calcule `tss_imgs_us[0]/1e6 − meta_ts[0]`
+   et le propage dans `TimestampMaskProvider`. Voir §9 pour les détails complets.
 
 6. **NaN loss occasionnels** — 2 à 4 sur 20 000 steps (0.01-0.02 %) sur M2 et M3.
    Le code fait `optimizer.zero_grad(); continue`. Origine probable : batch avec
@@ -393,37 +532,41 @@ Bugs identifiés puis résolus pendant la mise en route. Utiles pour la reproduc
 
 ---
 
-## 11. Limitations et calibrages restants
+## 13. Limitations et calibrages restants
 
 Priorité pour un draft de papier soumissible (RA-L / IROS) :
 
-1. **3 seeds sur M3** pour barres d'erreur — la variance vanilla ~1.7 % entre runs
-   indépendants est du même ordre que le gain M3 sur oracle (+1.2 point). **Impératif
-   avant soumission.**
+1. ✅ **5 seeds sur M2/M3** — fait. Variance quantifiée (σ M3 = 6.5 % Δ, problème de
+   collapse). Résultats corrigés (M4-fixed) en attente.
 
-2. **Sweep `selfsup_k`** ∈ {2, 3, 4, 5} pour justifier `k=3.0` et étudier la sensibilité.
+2. ✅ **Fixer le bug timestamp** — fait (2026-07-20). M4-fixed en cours, résultats
+   attendus sous peu.
 
-3. **Recalibrer l'oracle** avec `thicken_radius=0` ou en masque soft (GT × 0.5) —
-   sinon un reviewer notera à raison que l'oracle est un plafond dégradé.
+3. 🔄 **Scratch training M2/M3** — en cours (poids aléatoires + prior anti-collapse
+   β=0.5). Vise à stabiliser M3 (réduire σ) sans dépendre d'un préentraînement MS.
 
-4. **Fixer le bug timestamp `fast/*`** — 15 min de code, impact direct sur les 3 scènes
-   `fast/*` (donc sur la moyenne).
+4. **Résultats M4-fixed** — attendre la fin des jobs pour le tableau corrigé final.
+   Mettra en évidence si le gain réel M3 est plus ou moins élevé qu'estimé.
 
-5. **Deuxième dataset** (DSEC ou RPG ou EVIMO2) pour la généralisation
-   out-of-distribution. Le reviewer #3 le demandera systématiquement.
+5. **Sweep `selfsup_k`** ∈ {2, 3, 4, 5} pour justifier `k=3.0` et étudier la
+   sensibilité, notamment sur les seeds qui collapsent.
 
-6. **Ablation `mask_weight`** — voir si le M2 se rattrape avec `mask_weight` plus bas.
+6. **Recalibrer l'oracle** avec `thicken_radius=0` ou masque soft (GT × 0.5) — le
+   masque binaire dilaté est un plafond dégradé (supprime des patches utiles).
 
-7. **Ablation point d'injection** — score-map only vs ω only vs les deux (le plan
-   documente les 3 points de couplage).
+7. **Deuxième dataset** (DSEC, RPG ou EVIMO2) pour la généralisation OOD.
 
-8. **Figure attention map** — côte à côte pour une scène dynamique (`box/seq_01` par
-   exemple) : voxels, vanilla score map, M1 mask, M3 mask, GT. Ça matérialise
-   visuellement la thèse.
+8. **Ablation `mask_weight`** — voir si M2 se rattrape avec un poids plus faible (moins
+   de supervision GT directe, plus proche de M3).
+
+9. **Ablation point d'injection** — score-map only vs BA-weights only vs les deux.
+
+10. **Figure attention map** — côte à côte `box/seq_01` : voxels, vanilla score map,
+    M1/M3 mask, GT. Matérialise visuellement la thèse.
 
 ---
 
-## 12. Fichiers produits
+## 14. Fichiers produits
 
 **Rapports** (dans `MS_Model/`) :
 - `RAPPORT.md` — rapport résumé
@@ -431,33 +574,34 @@ Priorité pour un draft de papier soumissible (RA-L / IROS) :
 - `TEMP_RESULTS.md` — brouillon de travail (historique)
 - `PLAN.md`, `RECAP_M0_M4.md` — spécifications du projet
 
-**Résultats** (dans `DEVO/`) :
-- `results/central_table/central_table.md` — tableau central M4
-- `results/central_table/central_table.csv` — même chose, CSV pour LaTeX
-- `results/evimo_evs/2026-07-15_*` — résultats bruts par scène M0 v13
-- `results/evimo_evs/2026-07-16_*` — résultats bruts par scène M0 v21, M1 v21
+**Résultats** (dans `DEVO/results/`) :
+- `central_table/{central_table.md,.csv}` — tableau central M4 initial (pré-fix)
+- `central_table_seed{1..5}/{central_table.md,.csv}` — sweep variance 5 seeds (pré-fix)
+- `central_table_seed{1..5}_fixed/` — 🔄 en cours (M4 corrigé timestamps)
+- `evimo_evs/2026-07-15_*` — résultats bruts par scène M0 v13
+- `evimo_evs/2026-07-16_*` — résultats bruts par scène M0 v21, M1 v21
 
 **Checkpoints** (dans `DEVO/results_coupled/`) :
-- `m2/ms_final.pt` (4 MB) — MS convlstm couplé supervisé
-- `m2/devo_final.pth` (13.6 MB) — DEVO fine-tuné
-- `m2/coupled_final.pt` (53 MB) — combo pour reprise
-- `m2/*step*.pt` — 10 checkpoints intermédiaires (steps 2000, 4000, ..., 18000)
-- `m3/ms_final.pt` — MS convlstm couplé **auto-supervisé** (le modèle du papier)
-- `m3/devo_final.pth`, `m3/coupled_final.pt` — idem
-- `m3/*step*.pt` — 10 checkpoints intermédiaires
+- `m2/`, `m3/` — runs initiaux (référence, non seedés)
+- `m2_seed{1..5}/`, `m3_seed{1..5}/` — sweep variance (tous complets, `*_final.pt` présents)
+- `m2_scratch/`, `m3_scratch/` — 🔄 scratch training en cours (40k steps, prior β=0.5)
+
+Chaque dossier contient : `ms_final.pt` (4 MB), `devo_final.pth` (13.6 MB),
+`coupled_final.pt` (53 MB), + checkpoints tous les 2000 steps.
 
 **Code modifié** :
 - `MS_Model/ms_model/data/evimo_clip_dataset.py` — refactor lazy + fix intrinsics
-- `DEVO/train_coupled.py` — trainer couplé (mis en place au début)
-- `DEVO/devo/enet.py`, `DEVO/devo/ba.py`, `DEVO/devo/devo.py` — hooks additifs
-- `DEVO/evals/eval_evs/eval_evimo_{m0_oracle, m1_decoupled, central_table}.py` —
-  drivers d'éval
-- `DEVO/scripts/slurm/slurm_m{0,1,2,3,4}*.sh` — jobs SLURM cluster-adaptés
+- `MS_Model/ms_model/oracle.py` — fix timestamp (`ts_offset_s` dans `TimestampMaskProvider`)
+- `DEVO/train_coupled.py` — seed support, `--ms_weights` optionnel, prior doux
+- `DEVO/evals/eval_evs/eval_evimo_m1_decoupled.py` — `_ts_offset()` + factories corrigées
+- `DEVO/evals/eval_evs/eval_evimo_central_table.py` — `--seed` arg
+- `DEVO/scripts/slurm/slurm_m{2,3}_scratch.sh` — nouveaux scripts scratch
+- `DEVO/scripts/slurm/slurm_m4_central_table_fixed.sh` — M4 avec timestamps corrigés
 - `DEVO/splits/evimo/evimo_val.txt` — val split étendu à 21 scènes
 
 **Logs SLURM** (dans `DEVO/logs/`) :
-- `m0_oracle_685237.log` — M0 v21 (référence)
-- `m1_decoupled_685238.log` — M1 v21 (référence)
-- `m2_coupled_sup_685102.log` — M2 (13h de training)
-- `m3_coupled_selfsup_685103.log` — M3 (9h de training)
-- `m4_central_table_685104.log` — M4 (105 ATEs)
+- `m0_oracle_685237.log`, `m1_decoupled_685238.log` — références M0/M1 v21
+- `m2_coupled_sup_685102.log`, `m3_coupled_selfsup_685103.log` — training initial
+- `m4_central_table_685104.log` — M4 initial
+- `m4_fixed_68882{3..7}.log` — M4 corrigé seeds 1-5 (en cours)
+- `m2_scratch_688821.log`, `m3_scratch_688822.log` — scratch training (en cours)
