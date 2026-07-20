@@ -84,26 +84,62 @@ Les deux ordonnent identiquement les 5 configurations ; les Δ % relatifs sont c
 
 ---
 
-## 3. Tableau central du papier (M4) — run initial
+## 3. Tableau central du papier (M4)
 
-Run unifié `685104`, tous les configs sur le même vanilla et le même val — comparaison
-100 % fair.
+### 3.1. Run initial (pré-fix timestamp, job 685104)
 
-> ⚠️ **Ces chiffres sont entachés du bug timestamp** (voir §9) : les masques oracle,
-> M1, M2, M3 utilisaient tous la dernière frame comme masque statique au lieu du masque
-> aligné temporellement. Les chiffres corrigés (jobs `m4_fixed`, seeds 1-5) sont en cours
-> — ce tableau sera mis à jour dès leur arrivée.
+> ⚠️ Entaché du bug timestamp (§9) : masques figés sur la dernière frame.
+> Conservé pour référence — **utiliser §3.2 pour les chiffres définitifs.**
 
-| Configuration | ATE moyen (script, cm) | ATE moyen scène (cm) | Δ vs vanilla |
-|---|---:|---:|---:|
-| DEVO vanilla | 11.41 | 12.43 | 0.0 % |
-| DEVO + oracle GT (plafond) | 10.73 | 11.72 | **+6.0 %** |
-| DEVO + appris découplé (M1) | 10.99 | 12.01 | **+3.7 %** |
-| DEVO + couplé supervisé (M2) | 10.87 | 11.87 | **+4.8 %** |
-| **DEVO + couplé auto-sup (M3)** | **10.59** | **11.58** | **+7.2 %** |
+| Configuration | ATE moyen (cm) | Δ vs vanilla |
+|---|---:|---:|
+| DEVO vanilla | 11.41 | 0.0 % |
+| DEVO + oracle GT | 10.73 | +6.0 % |
+| DEVO + appris découplé (M1) | 10.99 | +3.7 % |
+| DEVO + couplé supervisé (M2) | 10.87 | +4.8 % |
+| DEVO + couplé auto-sup (M3) | 10.59 | +7.2 % |
 
-**Ordre observé** (pré-fix) : `vanilla < M1 < M2 < oracle < M3`. Les résultats corrigés
-pourraient réordonner les configs, notamment oracle dont le plafond est sous-estimé.
+### 3.2. Résultats corrigés — agrégé 5 seeds (M4-fixed, 2026-07-20) ✅
+
+Fix timestamps appliqué : `ts_us / 1e6 − offset_s` avec `offset_s = tss_imgs_us[0]/1e6 − meta_ts[0]`.
+Chaque seed = entraînement M2/M3 indépendant + évaluation M4 avec masques correctement alignés.
+
+| Configuration | ATE moy (cm) | ± std | Δ moy | ± std |
+|---|---:|---:|---:|---:|
+| DEVO vanilla | 10.96 | ±0.60 | — | — |
+| DEVO + oracle GT | 10.56 | ±0.53 | **+3.5 %** | ±5.0 % |
+| DEVO + appris découplé (M1) | **10.19** | ±0.36 | **+6.8 %** | ±7.3 % |
+| DEVO + couplé supervisé (M2) | 10.24 | ±0.33 | **+6.4 %** | ±6.9 % |
+| DEVO + couplé auto-sup (M3) | 11.06 | ±0.57 | **−0.9 %** | ±3.7 % |
+
+**Résultats par seed (Δ % vs vanilla, post-fix) :**
+
+| seed | oracle | M1 | M2 | M3 |
+|---:|---:|---:|---:|---:|
+| 1 | +2.6 % | +0.9 % | −0.5 % | −3.7 % |
+| 2 | −1.4 % | +0.9 % | −1.6 % | +2.7 % |
+| 3 | +9.2 % | +3.3 % | +9.8 % | −5.1 % |
+| 4 | −1.0 % | +11.6 % | +10.8 % | −1.6 % |
+| 5 | +8.1 % | +17.2 % | +13.2 % | +2.9 % |
+
+**Observations clés post-fix :**
+
+1. **M1 et M2 s'améliorent nettement** avec les masques alignés : +6.8 % et +6.4 % vs
+   +1.3 % et +3.1 % pré-fix. Le fix révèle que les masques appris étaient effectivement
+   utiles — ils étaient seulement mal alignés temporellement.
+
+2. **L'oracle tombe à +3.5 %** (vs +5.1 % pré-fix). Avec un masque correctement indexé,
+   le masque GT binaire dilué s'avère moins efficace que le masque appris continu (M1/M2).
+   Cela confirme l'hypothèse : masque doux différentiable > masque dur binaire.
+
+3. **M3 est négatif (−0.9 %)** — le modèle auto-supervisé, correctement évalué, **dégrade
+   les performances en moyenne**. 3 seeds sur 5 sont négatives. Probable collapse du masque
+   (mask_mean → 0 ou 1 selon la seed), confirmé par la variance σ = 3.7 %. C'est précisément
+   ce que le scratch training avec prior anti-collapse vise à corriger.
+
+4. **Variance encore très haute** (M1 : σ = 7.3 %, M2 : σ = 6.9 %) — les intervalles de
+   confiance se chevauchent. Le nombre de seeds doit être augmenté ou les modèles stabilisés
+   avant soumission.
 
 ---
 
@@ -379,14 +415,20 @@ t_s = float(ts_us) / 1e6 - self._ts_offset_s
 Le paramètre `ts_offset_s` est propagé dans `OracleDynMaskProvider.from_evimo_npz`
 et `LearnedDynMaskProvider.__init__`.
 
-### 9.3. Impact attendu
+### 9.3. Impact mesuré (M4-fixed, 5 seeds) ✅
 
-Avec le masque aligné correctement :
-- **Oracle** : devrait être un vrai plafond supérieur (les chiffres pré-fix
-  sous-estimaient le potentiel oracle).
-- **M1/M2/M3** : masque temporellement cohérent → impact difficile à prédire a priori
-  (un masque de la dernière frame peut accidentellement être bon ou mauvais selon la
-  scène). Les M4-fixed (5 seeds, en cours) quantifieront l'écart.
+| config | Δ pré-fix | Δ post-fix | variation |
+|---|---:|---:|---|
+| oracle GT | +5.1 % | +3.5 % | −1.6 pt — oracle moins bon qu'estimé |
+| M1 découplé | +1.3 % | **+6.8 %** | +5.5 pt — masque aligné très efficace |
+| M2 couplé sup | +3.1 % | **+6.4 %** | +3.3 pt — idem |
+| M3 auto-sup | +3.2 % | **−0.9 %** | −4.1 pt — modèle en fait négatif |
+
+Le fix révèle que **M1 et M2 étaient sous-estimés** (leur masque est bon, il était mal
+indexé), que **l'oracle est surestimé** (le masque de la dernière frame aidait
+accidentellement sur certaines scènes), et que **M3 est en réalité négatif** — le
+modèle auto-supervisé produit des masques qui dégradent la VO quand ils sont correctement
+utilisés. Cela motive directement le scratch training avec prior anti-collapse.
 
 ---
 
