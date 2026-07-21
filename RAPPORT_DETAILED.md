@@ -2,7 +2,7 @@
 
 **Auteur** : Arthur Fou (IPAL, stage CNRS/NUS)
 **Date** : 2026-07-20 (mis à jour)
-**État** : ✅ pipeline M0→M4 complet · ✅ sweep variance 5 seeds terminé · ✅ bug timestamp corrigé · 🔄 M4-fixed en cours · 🔄 scratch training en cours
+**État** : ✅ pipeline M0→M4 complet · ✅ sweep variance 5 seeds terminé · ✅ bug timestamp corrigé · ✅ M4-fixed complet (5 seeds) · 🔄 scratch training en cours (M3 fini, M2 ~85 %)
 
 Ce rapport détaille **chaque configuration sur chaque scène du val split**, avec les
 runs indépendants (M0 v21, M1 v21), le run M4 unifié, le sweep de variance 5 seeds,
@@ -99,20 +99,31 @@ Les deux ordonnent identiquement les 5 configurations ; les Δ % relatifs sont c
 | DEVO + couplé supervisé (M2) | 10.87 | +4.8 % |
 | DEVO + couplé auto-sup (M3) | 10.59 | +7.2 % |
 
-### 3.2. Résultats corrigés — agrégé 5 seeds (M4-fixed, 2026-07-20) ✅
+### 3.2. Résultats corrigés — agrégé 5 seeds (M4-fixed, 2026-07-21) ✅
 
 Fix timestamps appliqué : `ts_us / 1e6 − offset_s` avec `offset_s = tss_imgs_us[0]/1e6 − meta_ts[0]`.
 Chaque seed = entraînement M2/M3 indépendant + évaluation M4 avec masques correctement alignés.
+**Jobs 688823-688827, tous terminés.**
 
 | Configuration | ATE moy (cm) | ± std | Δ moy | ± std |
 |---|---:|---:|---:|---:|
-| DEVO vanilla | 10.96 | ±0.60 | — | — |
-| DEVO + oracle GT | 10.56 | ±0.53 | **+3.5 %** | ±5.0 % |
-| DEVO + appris découplé (M1) | **10.19** | ±0.36 | **+6.8 %** | ±7.3 % |
-| DEVO + couplé supervisé (M2) | 10.24 | ±0.33 | **+6.4 %** | ±6.9 % |
-| DEVO + couplé auto-sup (M3) | 11.06 | ±0.57 | **−0.9 %** | ±3.7 % |
+| DEVO vanilla | 10.963 | ±0.534 | — | — |
+| DEVO + oracle GT | 10.565 | ±0.474 | **+3.6 %** | ±4.2 % |
+| DEVO + appris découplé (M1) | **10.187** | ±0.326 | **+7.1 %** | ±6.5 % |
+| DEVO + couplé supervisé (M2) | 10.237 | ±0.295 | **+6.6 %** | ±5.4 % |
+| DEVO + couplé auto-sup (M3) | 11.060 | ±0.510 | **−0.9 %** | ±3.4 % |
 
-**Résultats par seed (Δ % vs vanilla, post-fix) :**
+**ATE brut par seed (cm) :**
+
+| seed | vanilla | oracle | M1 | M2 | M3 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 10.335 | 10.063 | 10.245 | 10.386 | 10.722 |
+| 2 | 10.517 | 10.660 | 10.424 | 10.681 | 10.233 |
+| 3 | 10.998 | 9.989 | 10.631 | 9.921 | 11.557 |
+| 4 | 11.099 | 11.211 | 9.806 | 9.903 | 11.273 |
+| 5 | 11.866 | 10.901 | 9.827 | 10.294 | 11.516 |
+
+**Δ % vs vanilla par seed :**
 
 | seed | oracle | M1 | M2 | M3 |
 |---:|---:|---:|---:|---:|
@@ -419,9 +430,9 @@ et `LearnedDynMaskProvider.__init__`.
 
 | config | Δ pré-fix | Δ post-fix | variation |
 |---|---:|---:|---|
-| oracle GT | +5.1 % | +3.5 % | −1.6 pt — oracle moins bon qu'estimé |
-| M1 découplé | +1.3 % | **+6.8 %** | +5.5 pt — masque aligné très efficace |
-| M2 couplé sup | +3.1 % | **+6.4 %** | +3.3 pt — idem |
+| oracle GT | +5.1 % | +3.6 % | −1.5 pt — oracle moins bon qu'estimé |
+| M1 découplé | +1.3 % | **+7.1 %** | +5.8 pt — masque aligné très efficace |
+| M2 couplé sup | +3.1 % | **+6.6 %** | +3.5 pt — idem |
 | M3 auto-sup | +3.2 % | **−0.9 %** | −4.1 pt — modèle en fait négatif |
 
 Le fix révèle que **M1 et M2 étaient sous-estimés** (leur masque est bon, il était mal
@@ -470,11 +481,11 @@ utilisés. Cela motive directement le scratch training avec prior anti-collapse.
 5 paires M2/M3 entraînées avec seeds 1 à 5 (torch + numpy + DataLoader). Durée ~7h
 par seed. Tous les `*_final.pt` disponibles dans `results_coupled/m{2,3}_seed{1..5}/`.
 
-### 10.5. M4-fixed — évaluation corrigée (jobs 688823-688827, en cours)
+### 10.5. M4-fixed — évaluation corrigée (jobs 688823-688827) ✅
 
-5 évaluations M4 avec le fix timestamp (§9), seeds 1-5. Résultats attendus dans
-`results/central_table_seed{1..5}_fixed/`. En cours (~4h de run au moment de la mise
-à jour, dernières configs M2/M3 en cours d'évaluation).
+5 évaluations M4 avec le fix timestamp (§9), seeds 1-5. Tous les `central_table.md`
+disponibles dans `results/central_table_seed{1..5}_fixed/`. Voir §3.2 pour les résultats
+agrégés définitifs.
 
 ### 10.6. Scratch training — MS initialisé aléatoirement (jobs 688821-688822, en cours)
 
@@ -483,13 +494,14 @@ Nouvelle expérience : entraîner MS depuis des **poids aléatoires** (sans char
 Motivé par la variance élevée de M3 sur les seeds (collapse mask_mean→0 ou →1 dans
 certains runs).
 
-| job | config | steps | freeze | outdir | avancement |
+| job | config | steps | freeze | outdir | état |
 |---|---|---|---|---|---|
-| 688821 | M2-scratch (sup, GT) | 40k | 10k | `results_coupled/m2_scratch/` | ~10 % (~step 4 k) |
-| 688822 | M3-scratch (auto-sup) | 40k | 10k | `results_coupled/m3_scratch/` | ~26 % (~step 10 k, joint) |
+| 688821 | M2-scratch (sup, GT) | 40k | 10k | `results_coupled/m2_scratch/` | 🔄 ~step 34k/40k |
+| 688822 | M3-scratch (auto-sup) | 40k | 10k | `results_coupled/m3_scratch/` | ✅ `ms_final.pt` présent |
 
-Observations préliminaires M3-scratch : `mask_mean` oscille entre 0.08 et 0.19 —
-le prior empêche l'effondrement observé dans les runs seedés.
+Observations M3-scratch : `mask_mean` stable entre 0.08 et 0.19 — le prior doux
+empêche l'effondrement observé dans les runs seedés. M2-scratch attendu sous peu ;
+une fois complétés, une évaluation M4 sera lancée sur ces deux checkpoints.
 
 ---
 
@@ -579,16 +591,16 @@ Bugs identifiés puis résolus pendant la mise en route. Utiles pour la reproduc
 Priorité pour un draft de papier soumissible (RA-L / IROS) :
 
 1. ✅ **5 seeds sur M2/M3** — fait. Variance quantifiée (σ M3 = 6.5 % Δ, problème de
-   collapse). Résultats corrigés (M4-fixed) en attente.
+   collapse).
 
-2. ✅ **Fixer le bug timestamp** — fait (2026-07-20). M4-fixed en cours, résultats
-   attendus sous peu.
+2. ✅ **Fixer le bug timestamp** — fait (2026-07-20).
 
-3. 🔄 **Scratch training M2/M3** — en cours (poids aléatoires + prior anti-collapse
-   β=0.5). Vise à stabiliser M3 (réduire σ) sans dépendre d'un préentraînement MS.
+3. ✅ **M4-fixed complet** (2026-07-21, jobs 688823-688827). Tableau agrégé 5 seeds
+   définitif : M1 +7.1 %, M2 +6.6 %, M3 −0.9 %. Voir §3.2.
 
-4. **Résultats M4-fixed** — attendre la fin des jobs pour le tableau corrigé final.
-   Mettra en évidence si le gain réel M3 est plus ou moins élevé qu'estimé.
+4. 🔄 **Scratch training M2/M3** — M3-scratch terminé (`ms_final.pt`), M2-scratch ~85 %
+   (step ~34k/40k). Vise à stabiliser M3 (réduire σ) sans dépendre d'un préentraînement.
+   À faire : évaluation M4 une fois M2-scratch terminé.
 
 5. **Sweep `selfsup_k`** ∈ {2, 3, 4, 5} pour justifier `k=3.0` et étudier la
    sensibilité, notamment sur les seeds qui collapsent.
@@ -619,14 +631,15 @@ Priorité pour un draft de papier soumissible (RA-L / IROS) :
 **Résultats** (dans `DEVO/results/`) :
 - `central_table/{central_table.md,.csv}` — tableau central M4 initial (pré-fix)
 - `central_table_seed{1..5}/{central_table.md,.csv}` — sweep variance 5 seeds (pré-fix)
-- `central_table_seed{1..5}_fixed/` — 🔄 en cours (M4 corrigé timestamps)
+- `central_table_seed{1..5}_fixed/` — ✅ complet (M4 corrigé timestamps, 2026-07-21)
 - `evimo_evs/2026-07-15_*` — résultats bruts par scène M0 v13
 - `evimo_evs/2026-07-16_*` — résultats bruts par scène M0 v21, M1 v21
 
 **Checkpoints** (dans `DEVO/results_coupled/`) :
 - `m2/`, `m3/` — runs initiaux (référence, non seedés)
 - `m2_seed{1..5}/`, `m3_seed{1..5}/` — sweep variance (tous complets, `*_final.pt` présents)
-- `m2_scratch/`, `m3_scratch/` — 🔄 scratch training en cours (40k steps, prior β=0.5)
+- `m2_scratch/` — 🔄 ~step 34k/40k (prior β=0.5, supervisé)
+- `m3_scratch/` — ✅ `ms_final.pt` présent (prior β=0.5, auto-sup)
 
 Chaque dossier contient : `ms_final.pt` (4 MB), `devo_final.pth` (13.6 MB),
 `coupled_final.pt` (53 MB), + checkpoints tous les 2000 steps.
@@ -645,5 +658,6 @@ Chaque dossier contient : `ms_final.pt` (4 MB), `devo_final.pth` (13.6 MB),
 - `m0_oracle_685237.log`, `m1_decoupled_685238.log` — références M0/M1 v21
 - `m2_coupled_sup_685102.log`, `m3_coupled_selfsup_685103.log` — training initial
 - `m4_central_table_685104.log` — M4 initial
-- `m4_fixed_68882{3..7}.log` — M4 corrigé seeds 1-5 (en cours)
-- `m2_scratch_688821.log`, `m3_scratch_688822.log` — scratch training (en cours)
+- `m4_fixed_68882{3..7}.log` — M4 corrigé seeds 1-5 (terminé)
+- `m2_scratch_688821.log` — scratch training M2 (~85 %)
+- `m3_scratch_688822.log` — scratch training M3 (terminé)
