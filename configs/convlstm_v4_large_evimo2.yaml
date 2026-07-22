@@ -1,0 +1,58 @@
+data:
+  root: /home/i/i0002573/arthur_ipal/datasets/evimo2/samsung_mono
+  train_sequences:
+    - imo/train/scene10_dyn_train_00_000000
+    - imo/train/scene10_dyn_train_01_000000
+    - imo/train/scene10_dyn_train_02_000000
+    - imo/train/scene10_dyn_train_03_000000
+    - imo/train/scene10_dyn_train_04_000000
+    - imo/train/scene12_dyn_test_00_000000
+    - imo/train/scene12_dyn_test_01_000000
+    - imo/train/scene13_dyn_test_01_000000
+    - imo/train/scene13_dyn_test_02_000000
+    - imo/train/scene13_dyn_test_03_000000
+    - imo/train/scene14_dyn_test_00_000000
+    - imo/train/scene14_dyn_test_01_000000
+    - imo/train/scene14_dyn_test_02_000000
+    - imo/train/scene15_dyn_test_00_000000
+    - imo/train/scene15_dyn_test_03_000000
+    - imo/train/scene15_dyn_test_04_000000
+    - imo/train/scene15_dyn_test_06_000000
+    - imo/train/scene6_dyn_train_03_000000
+    - imo/train/scene9_dyn_train_01_000000
+    - imo/train/scene9_dyn_train_02_000000
+    - imo/train/scene9_dyn_train_06_000000
+  val_sequences:
+    - imo/eval/scene13_dyn_test_00_000000
+    - imo/eval/scene13_dyn_test_05_000000
+    - imo/eval/scene14_dyn_test_03_000000
+    - imo/eval/scene14_dyn_test_04_000000
+    - imo/eval/scene14_dyn_test_05_000000
+    - imo/eval/scene15_dyn_test_01_000000
+    - imo/eval/scene15_dyn_test_02_000000
+    - imo/eval/scene15_dyn_test_05_000000
+  seq_len: 16
+  nb_time_bins: 5
+  patch_size: 4
+  mask_thicken_radius: 3
+
+model:
+  name: convlstm_v4
+  hidden_dim: 128
+  num_groups: 8
+
+training:
+  epochs: 100
+  batch_size: 8
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  use_scheduler: true
+  loss: bce_dice
+  loss_pos_weight: 10.0
+  num_workers: 4
+  checkpoint_dir: checkpoints
+
+wandb:
+  project: ms-model
+  entity: arthurfou-cole-polytechnique
+  name: "evimo2-large-run1"

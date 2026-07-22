@@ -181,3 +181,56 @@ class LearnedDynMaskProvider(TimestampMaskProvider):
         # la i-ème prédiction couvre [ts_i, ts_{i+1}) -> on l'étiquette par ts_i
         super().__init__(frame_ts[:N], scores, device=device, max_dt_ms=max_dt_ms,
                          ts_offset_s=ts_offset_s)
+
+    @classmethod
+    def from_event_array(
+        cls,
+        ea: "EventArray",
+        frame_ts: np.ndarray,
+        weights_path: Union[str, Path],
+        config_path: Union[str, Path],
+        device: Union[str, torch.device] = "cuda",
+        threshold: Optional[float] = None,
+        max_dt_ms: float = 50.0,
+        ts_offset_s: float = 0.0,
+    ) -> "LearnedDynMaskProvider":
+        """Construit le provider depuis un EventArray + timestamps de frames quelconques.
+
+        Utilisé pour les datasets non-EVIMO (RPG, EDS, FPV, HKU, MVSEC, VECtor, TUM-VIE).
+        Les events et frame_ts doivent être dans le même repère temporel (en secondes).
+
+        Args:
+            ea: EventArray avec t en secondes.
+            frame_ts: (M,) timestamps des frames en secondes.
+            weights_path: checkpoint MS (best.pt).
+            config_path: yaml d'entraînement MS.
+        """
+        from ms_model.inference import load_model_from_checkpoint
+        from ms_model.representations.voxel import make_voxel_sequence
+
+        device_t = torch.device(device)
+        model, data_cfg = load_model_from_checkpoint(weights_path, config_path, device_t)
+        nb_time_bins = data_cfg["nb_time_bins"]
+        seq_len = data_cfg["seq_len"]
+
+        frame_ts = np.asarray(frame_ts, dtype=np.float64)
+        voxel_seq = make_voxel_sequence(ea, frame_ts, nb_of_time_bins=nb_time_bins)
+        N = voxel_seq.shape[0]
+
+        probs = []
+        with torch.no_grad():
+            for start in range(0, N, seq_len):
+                chunk = voxel_seq[start:start + seq_len].unsqueeze(0).to(device_t)
+                logits = model(chunk)
+                probs.append(torch.sigmoid(logits)[0, :, 0].cpu())
+        scores = torch.cat(probs, dim=0)
+
+        if threshold is not None:
+            scores = (scores > threshold).float()
+
+        obj = object.__new__(cls)
+        TimestampMaskProvider.__init__(
+            obj, frame_ts[:N], scores,
+            device=device, max_dt_ms=max_dt_ms, ts_offset_s=ts_offset_s
+        )
+        return obj

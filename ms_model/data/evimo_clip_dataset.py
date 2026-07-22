@@ -53,7 +53,17 @@ def _voxel_cache_path(npz_path: Path, nb_time_bins: int) -> Path:
 
 
 def _read_meta_and_poses(npz_path: Path):
-    """Lit la meta (frames -> poses c2w, K) sans charger events/depth/mask."""
+    """Lit la meta (frames -> poses c2w, K) sans charger events/depth/mask.
+
+    Supporte EVIMO1 (.npz) et EVIMO2 (répertoire dataset_info.npz).
+    Pour EVIMO2, les frames sans clé 'cam' (tracking perdu) sont écartées.
+    """
+    if npz_path.is_dir():
+        fi = np.load(npz_path / "dataset_info.npz", allow_pickle=True)
+        meta = fi["meta"].item()
+        frames = [f for f in meta["frames"] if "cam" in f]
+        K = np.asarray(fi["K"])
+        return frames, K
     with np.load(npz_path, allow_pickle=True) as data:
         meta = data["meta"].item()
         frames = meta["frames"]
@@ -62,7 +72,21 @@ def _read_meta_and_poses(npz_path: Path):
 
 
 def _load_depth_and_mask(npz_path: Path, N: int, want_mask: bool):
-    """Charge depth (+ mask si demandé) pour N frames — décompresse le npz (I/O lourd)."""
+    """Charge depth (+ mask si demandé) pour N frames — décompresse le npz (I/O lourd).
+
+    Supporte EVIMO1 (.npz) et EVIMO2 (répertoire dataset_depth/mask.npz).
+    Depth EVIMO2 : uint16 en mm (identique à EVIMO1).
+    """
+    if npz_path.is_dir():
+        fd = np.load(npz_path / "dataset_depth.npz", allow_pickle=True)
+        depth_keys = sorted(fd.keys())[:N]
+        depth = np.stack([fd[k] for k in depth_keys]).astype(np.float32)
+        mask = None
+        if want_mask:
+            fm = np.load(npz_path / "dataset_mask.npz", allow_pickle=True)
+            mask_keys = sorted(fm.keys())[:N]
+            mask = np.stack([fm[k] for k in mask_keys])
+        return depth, mask
     with np.load(npz_path, allow_pickle=True) as data:
         depth = data["depth"][:N].astype(np.float32)          # (N, H, W) mm
         mask = data["mask"][:N] if want_mask else None
