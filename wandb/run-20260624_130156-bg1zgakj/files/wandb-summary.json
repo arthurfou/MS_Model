@@ -1,0 +1,1 @@
+{"_runtime":4311,"val/loss":2.270668126642704,"val/mask":1.4379970835879427e-13,"_step":49,"train/mask":1.434474850668278e-13,"_timestamp":1.782281628306909e+09,"val/iou":0,"train/iou":0,"epoch":49,"train/loss":1.5750630143526438,"val/warp":0.16222930359072052,"val/depth":2.1084388233721256,"_wandb":{"runtime":4311},"train/depth":1.148020595580608,"train/warp":0.427042419756497}

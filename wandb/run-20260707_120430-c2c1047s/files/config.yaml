@@ -1,0 +1,183 @@
+_wandb:
+    value:
+        cli_version: 0.27.2
+        e:
+            uaql6ul85prp6gz2c9qsqtjk39k42cm1:
+                args:
+                    - --config
+                    - configs/convlstm_v4b_full.yaml
+                    - --wandb-name
+                    - v4b-full-run1
+                cpu_count: 48
+                cpu_count_logical: 96
+                cudaVersion: "12.9"
+                disk:
+                    /:
+                        total: "107321753600"
+                        used: "13772058624"
+                email: arthur.ouf9@gmail.com
+                executable: /home/i/i0002573/miniconda3/envs/devo/bin/python
+                git:
+                    commit: 48f1507b0baf1afe3d8a9d367f55856a106242d2
+                    remote: https://github.com/arthurfou/MS_Model.git
+                gpu: NVIDIA A100-PCIE-40GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-PCIE-40GB
+                      uuid: GPU-551e8f12-f2dd-dd64-4aa7-fd7b2b004278
+                host: xgpg5
+                memory:
+                    total: "270278529024"
+                os: Linux-6.8.0-134-generic-x86_64-with-glibc2.39
+                program: -m ms_model.training.train
+                python: CPython 3.10.0
+                root: /home/i/i0002573/arthur_ipal/MS_Model
+                slurm:
+                    cluster_name: soc
+                    conf: /etc/slurm/slurm.conf
+                    cpus_on_node: "8"
+                    cpus_per_task: "8"
+                    gpus_on_node: "1"
+                    gtids: "0"
+                    job_account: allusers
+                    job_cpus_per_node: "8"
+                    job_end_time: "1783611702"
+                    job_gid: "9130"
+                    job_gpus: "0"
+                    job_id: "675744"
+                    job_name: ms_model
+                    job_nodelist: xgpg5
+                    job_num_nodes: "1"
+                    job_partition: gpu-long
+                    job_qos: normal
+                    job_start_time: "1783352502"
+                    job_uid: "58796"
+                    job_user: i0002573
+                    jobid: "675744"
+                    localid: "0"
+                    mem_per_node: "32768"
+                    nnodes: "1"
+                    nodeid: "0"
+                    nodelist: xgpg5
+                    oom_kill_step: "0"
+                    prio_process: "0"
+                    procid: "0"
+                    script_context: prolog_task
+                    submit_dir: /home/i/i0002573/arthur_ipal/MS_Model
+                    submit_host: xgpe5
+                    task_pid: "209774"
+                    tasks_per_node: "1"
+                    topology_addr: xgpg5
+                    topology_addr_pattern: node
+                    tres_per_task: cpu=8
+                startedAt: "2026-07-07T04:04:30.553095Z"
+                writerId: uaql6ul85prp6gz2c9qsqtjk39k42cm1
+        m: []
+        python_version: 3.10.0
+        t:
+            "1":
+                - 1
+            "2":
+                - 1
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.10.0
+            "5": 0.27.2
+            "12": 0.27.2
+            "13": linux-x86_64
+data:
+    value:
+        mask_thicken_radius: 3
+        nb_time_bins: 5
+        patch_size: 4
+        root: ../datasets/evimo_full
+        seq_len: 16
+        train_sequences:
+            - train/basic/npz/O1_FB.npz
+            - train/basic/npz/O1_LR.npz
+            - train/basic/npz/O1_UD.npz
+            - train/basic/npz/O1_YAW.npz
+            - train/basic/npz/TABLETOP_CLOSE.npz
+            - train/basic/npz/TABLETOP_FAR.npz
+            - train/box/npz/seq_00.npz
+            - train/box/npz/seq_01.npz
+            - train/box/npz/seq_02.npz
+            - train/box/npz/seq_03.npz
+            - train/box/npz/seq_04.npz
+            - train/box/npz/seq_05.npz
+            - train/box/npz/seq_06.npz
+            - train/box/npz/seq_07.npz
+            - train/box/npz/seq_08.npz
+            - train/box/npz/seq_09.npz
+            - train/box/npz/seq_10.npz
+            - train/box/npz/seq_11.npz
+            - train/floor/npz/seq_00.npz
+            - train/floor/npz/seq_01.npz
+            - train/floor/npz/seq_02.npz
+            - train/table/npz/seq_00.npz
+            - train/table/npz/seq_01.npz
+            - train/table/npz/seq_02.npz
+            - train/table/npz/seq_03.npz
+            - train/table/npz/seq_04.npz
+            - train/table/npz/seq_05.npz
+            - train/tabletop/npz/seq_00.npz
+            - train/tabletop/npz/seq_01.npz
+            - train/tabletop/npz/seq_02.npz
+            - train/tabletop/npz/seq_03.npz
+            - train/tabletop/npz/seq_04.npz
+            - train/tabletop/npz/seq_05.npz
+            - train/tabletop-egomotion/npz/seq_00.npz
+            - train/tabletop-egomotion/npz/seq_01.npz
+            - train/tabletop-egomotion/npz/seq_02.npz
+            - train/tabletop-egomotion/npz/seq_03.npz
+            - train/wall/npz/seq_00.npz
+            - train/wall/npz/seq_01.npz
+            - train/wall/npz/seq_02.npz
+        val_sequences:
+            - eval/box/npz/seq_00.npz
+            - eval/box/npz/seq_01.npz
+            - eval/box/npz/seq_02.npz
+            - eval/box/npz/seq_03.npz
+            - eval/box/npz/seq_04.npz
+            - eval/box/npz/seq_05.npz
+            - eval/fast/npz/seq_00.npz
+            - eval/fast/npz/seq_01.npz
+            - eval/fast/npz/seq_02.npz
+            - eval/floor/npz/seq_00.npz
+            - eval/floor/npz/seq_01.npz
+            - eval/table/npz/seq_00.npz
+            - eval/table/npz/seq_01.npz
+            - eval/table/npz/seq_02.npz
+            - eval/table/npz/seq_03.npz
+            - eval/tabletop/npz/seq_00.npz
+            - eval/tabletop/npz/seq_01.npz
+            - eval/tabletop/npz/seq_02.npz
+            - eval/tabletop/npz/seq_03.npz
+            - eval/wall/npz/seq_00.npz
+            - eval/wall/npz/seq_01.npz
+model:
+    value:
+        hidden_dim: 96
+        name: convlstm_v4b
+        num_groups: 8
+training:
+    value:
+        batch_size: 8
+        checkpoint_dir: checkpoints
+        epochs: 100
+        loss: bce_dice
+        loss_pos_weight: 10
+        lr: 0.001
+        num_workers: 4
+        use_scheduler: true
+        weight_decay: 0.0001
+wandb:
+    value:
+        entity: arthurfou-cole-polytechnique
+        name: ""
+        project: ms-model

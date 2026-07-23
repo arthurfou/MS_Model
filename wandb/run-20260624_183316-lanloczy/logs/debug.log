@@ -1,0 +1,24 @@
+2026-06-24 18:33:16,585 INFO    MainThread:874807 [wandb_setup.py:_flush():81] Current SDK version is 0.27.2
+2026-06-24 18:33:16,585 INFO    MainThread:874807 [wandb_setup.py:_flush():81] Configure stats pid to 874807
+2026-06-24 18:33:16,585 INFO    MainThread:874807 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-06-24 18:33:16,585 INFO    MainThread:874807 [wandb_init.py:setup_run_log_directory():723] Logging user logs to /home/i/i0002573/arthur_ipal/MS_Model/wandb/run-20260624_183316-lanloczy/logs/debug.log
+2026-06-24 18:33:16,585 INFO    MainThread:874807 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to /home/i/i0002573/arthur_ipal/MS_Model/wandb/run-20260624_183316-lanloczy/logs/debug-internal.log
+2026-06-24 18:33:16,585 INFO    MainThread:874807 [wandb_init.py:init():766] calling init triggers
+2026-06-24 18:33:16,586 INFO    MainThread:874807 [wandb_init.py:init():771] wandb.init called with sweep_config: {}
+config: {'data': {'root': '../datasets/EV-IMO/eval', 'train_sequences': ['box/npz/seq_00.npz', 'box/npz/seq_01.npz', 'box/npz/seq_02.npz', 'box/npz/seq_03.npz', 'box/npz/seq_04.npz', 'box/npz/seq_05.npz', 'fast/npz/seq_00.npz', 'fast/npz/seq_01.npz', 'wall/npz/seq_00.npz', 'wall/npz/seq_01.npz'], 'val_sequences': ['tabletop/npz/seq_00.npz', 'tabletop/npz/seq_01.npz'], 'slice_dt': 0.025, 'n_slices_context': 5, 'max_objects': 3}, 'model': {'name': 'evimo', 'max_objects': 3, 'H': 260, 'W': 346, 'n_context_slices': 5, 'ecn_variant': 'baseline'}, 'training': {'epochs': 60, 'batch_size': 8, 'lr': 0.01, 'weight_decay': 0.0001, 'num_workers': 4, 'checkpoint_dir': 'checkpoints', 'evimo_loss_kwargs': {'w_depth': 1.0, 'w_mask': 0.5, 'warp_loss_kwargs': {'use_fine_loss': False, 'p_norm': 0.5}, 'depth_loss_kwargs': {'lambda_smooth': 0.1}, 'mask_loss_kwargs': {'lambda_smooth': 0.1, 'lambda_bce': 1.0}}}, 'wandb': {'project': 'ms-model', 'entity': 'arthurfou-cole-polytechnique', 'name': ''}, '_wandb': {}}
+2026-06-24 18:33:16,586 INFO    MainThread:874807 [wandb_init.py:init():814] starting backend
+2026-06-24 18:33:16,586 INFO    MainThread:874807 [wandb_init.py:init():829] sending inform_init request
+2026-06-24 18:33:17,053 INFO    MainThread:874807 [wandb_init.py:init():834] backend started and connected
+2026-06-24 18:33:17,055 INFO    MainThread:874807 [wandb_init.py:init():904] updated telemetry
+2026-06-24 18:33:17,080 INFO    MainThread:874807 [wandb_init.py:init():927] communicating run to backend with 90.0 second timeout
+2026-06-24 18:33:17,511 INFO    MainThread:874807 [wandb_init.py:init():972] starting run threads in backend
+2026-06-24 18:33:17,914 INFO    MainThread:874807 [wandb_run.py:_console_start():2523] atexit reg
+2026-06-24 18:33:17,914 INFO    MainThread:874807 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-06-24 18:33:17,914 INFO    MainThread:874807 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-06-24 18:33:17,914 INFO    MainThread:874807 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-06-24 18:33:17,923 INFO    MainThread:874807 [wandb_init.py:init():1010] run started, returning control to user process
+2026-06-24 19:40:35,510 INFO    MainThread:874807 [wandb_run.py:_finish():2285] finishing run arthurfou-cole-polytechnique/ms-model/lanloczy
+2026-06-24 19:40:35,512 INFO    MainThread:874807 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-06-24 19:40:35,513 INFO    MainThread:874807 [wandb_run.py:_restore():2472] restore
+2026-06-24 19:40:35,513 INFO    MainThread:874807 [wandb_run.py:_restore():2478] restore done
+2026-06-24 19:40:36,956 INFO    MainThread:874807 [wandb_run.py:_footer_sync_info():3891] logging synced files
