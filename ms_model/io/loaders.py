@@ -18,28 +18,56 @@ def _is_evimo2_dir(path: Path) -> bool:
     return path.is_dir() and (path / "dataset_info.npz").exists()
 
 
+def _evimo2_gt_frames(path: Path) -> list:
+    """Frames EVIMO2 possédant une GT (masque + depth + pose caméra).
+
+    EVIMO2 laisse des trous : quand le tracking VICON est perdu, la frame est
+    présente dans meta["frames"] mais sans "cam" ni "gt_frame", et aucune entrée
+    ne lui correspond dans dataset_mask.npz / dataset_depth.npz. L'id de frame
+    (== suffixe des clés "mask_%010d") est donc la seule clé d'alignement fiable.
+    """
+    fi = np.load(path / "dataset_info.npz", allow_pickle=True)
+    return [f for f in fi["meta"].item()["frames"] if f.get("gt_frame") is not None]
+
+
 def _load_evimo2_events(path: Path) -> "EventArray":
     """Charge les events depuis un répertoire EVIMO2 (3 fichiers séparés)."""
     ev_t  = np.load(path / "dataset_events_t.npy").astype(np.float64)   # (N,) sec
     ev_xy = np.load(path / "dataset_events_xy.npy").astype(np.float64)  # (N, 2)
     ev_p  = np.load(path / "dataset_events_p.npy").astype(np.float64)   # (N,)
-    fi    = np.load(path / "dataset_info.npz", allow_pickle=True)
-    idx   = fi["index"].astype(np.int64)                                 # (N_frames,)
     events = np.stack([ev_t, ev_xy[:, 0], ev_xy[:, 1], ev_p], axis=1)
-    frame_ts = ev_t[np.clip(idx, 0, len(ev_t) - 1)]
+    # NB: fi["index"] n'est PAS un index par frame (contrairement à EVIMO1) mais
+    # une table de lookup sur une grille temporelle fixe (10 ms). Les bornes de
+    # frame utiles sont les ts des frames avec GT.
+    frame_ts = np.array([f["ts"] for f in _evimo2_gt_frames(path)], dtype=np.float64)
     return EventArray(events=events, H=EVIMO2_H, W=EVIMO2_W, frame_ts=frame_ts)
 
 
 def _load_evimo2_mask(path: Path) -> "FrameMasks":
-    """Charge les masques GT depuis un répertoire EVIMO2 (dataset_mask.npz par frame)."""
+    """Charge les masques GT depuis un répertoire EVIMO2 (dataset_mask.npz par frame).
+
+    Le i-ème masque correspond à la i-ème frame **possédant une GT**, pas à la i-ème
+    frame tout court : `sorted(keys)[:N]` zippé avec `ts[:N]` décale tout ce qui suit
+    un trou de tracking (cf. `_evimo2_gt_frames`).
+
+    Les clés `mask_%010d` sont renumérotées à partir de 0 à la conversion npz — elles
+    ne valent l'id de frame que si la séquence commence à l'id 0 (ce n'est pas le cas
+    de scene13_dyn_test_05, dont les ids démarrent à 134). D'où l'appariement par
+    position dans la liste filtrée plutôt que par id.
+    """
     fm_file = np.load(path / "dataset_mask.npz", allow_pickle=True)
-    mask_keys = sorted(fm_file.keys())
-    masks = np.stack([fm_file[k] for k in mask_keys])   # (N_frames, H, W)
-    fi = np.load(path / "dataset_info.npz", allow_pickle=True)
-    meta = fi["meta"].item()
-    ts = np.array([f["ts"] for f in meta["frames"]], dtype=np.float64)
-    N = min(len(mask_keys), len(ts))
-    return FrameMasks(masks=masks[:N], ts=ts[:N])
+    keys = sorted(fm_file.files, key=lambda k: int(k.split("_")[-1]))
+    frames = _evimo2_gt_frames(path)
+
+    if len(keys) != len(frames):
+        raise ValueError(
+            f"{path}: {len(keys)} masques pour {len(frames)} frames avec GT — "
+            "alignement impossible."
+        )
+
+    masks = np.stack([fm_file[k] for k in keys])
+    ts = np.array([f["ts"] for f in frames], dtype=np.float64)
+    return FrameMasks(masks=masks, ts=ts)
 
 
 def load_evimo_npz(path: Union[str, Path]) -> "EventArray":
